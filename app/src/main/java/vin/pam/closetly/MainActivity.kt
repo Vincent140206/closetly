@@ -11,7 +11,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            ClosetlyTheme { ClosetlyApp() }
+            ClosetlyTheme {
+                ClosetlyApp(container = (application as ClosetlyApplication).container)
+            }
         }
     }
 }
