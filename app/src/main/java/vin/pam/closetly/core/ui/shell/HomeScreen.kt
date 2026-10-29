@@ -26,9 +26,12 @@ import vin.pam.closetly.core.ui.components.ClosetlyScaffold
 
 @Composable
 fun HomeScreen(
+    authStatus: String,
+    authActionLabel: String,
+    isAuthActionEnabled: Boolean,
     onModuleClick: (AppModule) -> Unit,
     onProfileClick: () -> Unit,
-    onLoginClick: () -> Unit,
+    onAuthClick: () -> Unit,
 ) {
     ClosetlyScaffold(
         title = "Closetly",
@@ -53,7 +56,17 @@ fun HomeScreen(
                         text = "Choose a module to view its ownership placeholder. Feature implementation lives on each member's branch.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    OutlinedButton(onClick = onLoginClick) { Text("Authentication placeholder") }
+                    Text(
+                        text = authStatus,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    OutlinedButton(
+                        onClick = onAuthClick,
+                        enabled = isAuthActionEnabled,
+                    ) {
+                        Text(authActionLabel)
+                    }
                 }
             }
             items(AppModule.entries, key = { it.name }) { module ->
