@@ -8,9 +8,15 @@ import androidx.compose.runtime.Composable
 
 private val DarkColorScheme = darkColorScheme(
     primary = Sage,
+    onPrimary = Night,
+    primaryContainer = Olive,
+    onPrimaryContainer = WarmWhite,
     secondary = Sand,
     tertiary = Clay,
     background = Night,
+    onBackground = WarmWhite,
+    surface = Night,
+    onSurface = WarmWhite,
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -29,13 +35,13 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun ClosetlyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        content = content
+        content = content,
     )
 }

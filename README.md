@@ -1,42 +1,52 @@
 # Closetly
 
-Closetly is a Kotlin and Jetpack Compose wardrobe-management app built as a six-person Mobile Application Programming final project. This repository currently targets the **UI milestone**: every feature is navigable and uses realistic in-memory data, while repository contracts isolate the later Supabase milestone.
+Closetly is a Kotlin and Jetpack Compose university group project for personal wardrobe and outfit management. The `develop` branch is intentionally an **application-level foundation**, not a partially implemented product.
 
-## Current capabilities
+Each of the six assigned modules is developed independently on its existing feature branch. Shared infrastructure belongs on `develop` and should remain free of generated feature models, ViewModels, repositories, dummy data, and pretend CRUD flows.
 
-- Clearly labelled demo entry; login, registration, profile, and edit-profile scaffolds
-- Home hub for all six assigned features
-- Type-safe Navigation Compose routes for every list, detail, and add/edit screen
-- Per-feature `ViewModel`, immutable `StateFlow`, repository interface, and fake repository
-- Working in-memory add, edit, and delete flows
-- Android Photo Picker and local Coil preview in image-capable forms
-- Supabase Auth, PostgREST, and Storage client factory that is inert without explicit configuration
+## Currently implemented
 
-Demo mode is not real authentication and data is reset when the application process restarts.
+- Android application and Compose initialization
+- Material 3 light/dark theme and shared UI primitives
+- Centralized, type-safe Navigation Compose graph
+- Development Home launcher with six module entry points
+- One reusable module ownership placeholder with functional Back navigation
+- Login, Registration, and Profile route placeholders
+- Lightweight application container
+- Optional, lazy Supabase client configuration
+- Gradle Kotlin DSL, version catalog, unit-test, and instrumentation-test infrastructure
+- Reserved packages for all six individual modules
+
+The app starts at Home and runs without Supabase credentials.
+
+## Not implemented yet
+
+- Digital Wardrobe functionality
+- Mix & Match Outfit functionality
+- Outfit Planner functionality
+- Style Inspiration Board functionality
+- Fashion Wishlist functionality
+- Wear History functionality
+- Feature-specific models, repositories, ViewModels, UI state, screens, or CRUD
+- Real authentication or profile persistence
+- Supabase database schema deployment or feature repositories
+- Image selection, uploads, downloads, or storage policies
+
+The module cards deliberately open a **Not implemented yet** screen. They do not represent completed features.
 
 ## Technology
 
-- Kotlin 2.2.21, Gradle Kotlin DSL, and a version catalog
-- Jetpack Compose with Material 3
-- Navigation Compose type-safe routes and Kotlinx Serialization
-- Lifecycle ViewModel, Coroutines, `StateFlow`, and `collectAsStateWithLifecycle`
-- Coil 3
-- Supabase Kotlin SDK (Auth, PostgREST, Storage) and Ktor Android engine
-- Android Photo Picker
-- minSdk 26, target/compile SDK 36
+- Kotlin 2.2.21
+- Android Gradle Plugin 9.2.1 and Gradle 9.4.1
+- Jetpack Compose and Material 3
+- Navigation Compose with `@Serializable` routes
+- Kotlinx Serialization
+- Supabase Kotlin SDK modules for future Auth, PostgREST, and Storage integration
+- Ktor Android engine
+- Coil retained for planned image rendering
+- minSdk 26, targetSdk 36, compileSdk 36.1
 
-## Feature ownership
-
-| Feature | Owner | Main package | Future table |
-|---|---|---|---|
-| Digital Wardrobe | Vincent | `feature/wardrobe` | `clothing_items` |
-| Mix & Match Outfit | Janice | `feature/outfit` | `outfits`, `outfit_items` |
-| Outfit Planner | Vara | `feature/planner` | `outfit_plans` |
-| Style Inspiration | Sela | `feature/inspiration` | `style_inspirations` |
-| Fashion Wishlist | Gres | `feature/wishlist` | `fashion_wishlist` |
-| Wear History | Aurel | `feature/wearhistory` | `wear_history` |
-
-Authentication and Profile are shared foundations and do not count as individual features.
+Dependency versions are centralized in `gradle/libs.versions.toml`.
 
 ## Project structure
 
@@ -44,78 +54,81 @@ Authentication and Profile are shared foundations and do not count as individual
 app/src/main/java/vin/pam/closetly/
 ├── MainActivity.kt
 ├── ClosetlyApp.kt
+├── ClosetlyApplication.kt
 ├── core/
-│   ├── data/                 # CRUD and Supabase/storage contracts
-│   ├── model/                # Shared display contract
-│   ├── navigation/           # Serializable routes and AppNavHost
-│   └── ui/components/        # Shared scaffolds, states, cards, forms
-├── di/AppContainer.kt        # Manual dependency injection and VM factory
+│   ├── config/AppConfig.kt
+│   ├── data/SupabaseProvider.kt
+│   ├── navigation/
+│   │   ├── AppModule.kt
+│   │   ├── AppNavHost.kt
+│   │   └── Routes.kt
+│   └── ui/
+│       ├── components/
+│       └── shell/
+├── di/AppContainer.kt
 ├── feature/
-│   ├── auth/                 # Shared demo auth foundation
-│   ├── profile/              # Shared profile foundation
-│   ├── home/                 # Six-feature hub
-│   ├── wardrobe/
-│   ├── outfit/
-│   ├── planner/
-│   ├── inspiration/
-│   ├── wishlist/
-│   └── wearhistory/
+│   ├── auth/                 # Shared placeholder only
+│   ├── profile/              # Shared placeholder only
+│   ├── wardrobe/.gitkeep
+│   ├── outfit/.gitkeep
+│   ├── planner/.gitkeep
+│   ├── inspiration/.gitkeep
+│   ├── wishlist/.gitkeep
+│   └── wearhistory/.gitkeep
 └── ui/theme/
-docs/
-├── DATABASE_CONTRACT.md
-├── NAVIGATION_CONTRACT.md
-├── REPOSITORY_CONTRACTS.md
-├── UI_GUIDELINES.md
-└── TODO.md
 ```
 
-Each individual feature currently keeps its model, repository, fake implementation, and ViewModel in a compact `*Contract.kt`, with UI in `*Screens.kt`. Split these into `data/`, `domain/`, and `ui/` subpackages when a feature grows; do not move unrelated teammates' files during feature work.
+The existing theme package remains at `ui/theme` to avoid a cosmetic move with no architectural benefit.
 
-## Build and run on Windows
+## Feature ownership
 
-1. Install Android Studio with JDK 17 or newer and Android SDK 36.
-2. Open this repository and allow Gradle sync to finish.
-3. Keep SDK paths and credentials only in ignored local files. `local.properties` must never be committed.
-4. Select an emulator or Android device running API 26+.
-5. Run the `app` configuration, or from PowerShell:
+| Package | Module | Owner | Existing branch |
+|---|---|---|---|
+| `feature/wardrobe` | Digital Wardrobe | Vincent | `feature/digital-wardrobe` |
+| `feature/outfit` | Mix & Match Outfit | Janice | `feature/mix-and-match` |
+| `feature/planner` | Outfit Planner | Vara | `feature/outfit-planner` |
+| `feature/inspiration` | Style Inspiration Board | Sela | `feature/inspiration-board` |
+| `feature/wishlist` | Fashion Wishlist | Gres | `feature/fashion-wishlist` |
+| `feature/wearhistory` | Wear History | Aurel | `feature/wear-history` |
+
+Authentication and Profile are shared features and are not included in these six allocations.
+
+## Build on Windows
+
+Install Android Studio, JDK 17 or newer, and Android SDK 36. Then run:
 
 ```powershell
-.\gradlew.bat :app:assembleDebug
+.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest
 ```
 
-If the machine's global Gradle directory is not writable, use a project-local cache for that terminal session:
+If the machine-wide Gradle directory is not writable:
 
 ```powershell
 $env:GRADLE_USER_HOME = Join-Path $PWD '.gradle-user'
-.\gradlew.bat :app:assembleDebug
+.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest
 ```
 
-The `.gradle-user/` directory is ignored.
+## Optional Supabase configuration
 
-## Moving from dummy data to Supabase
+Supabase is not required to launch the app. When cloud integration begins, create an ignored `secrets.properties` in the repository root:
 
-1. Create a Supabase project only during the database milestone.
-2. Apply the schema and Row Level Security policies described in [DATABASE_CONTRACT.md](docs/DATABASE_CONTRACT.md).
-3. Put the project URL and **anon/publishable key only** in an ignored local configuration source. Never ship a service-role key.
-4. Call `SupabaseProvider.createOrNull(url, anonKey)` in a production container. A blank configuration deliberately returns `null`.
-5. Implement each existing repository interface using PostgREST. Keep model mapping in the data layer.
-6. Implement `ImageStorageRepository` with a private Storage bucket and per-user paths.
-7. Replace one fake binding at a time in `AppContainer`; no screen or ViewModel rewrite should be necessary.
-8. Add loading, error, retry, offline, and destructive-action tests before enabling cloud mode by default.
+```properties
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-publishable-or-anon-key
+```
+
+The same values may be supplied as Gradle properties or environment variables. Only a publishable/anon key is allowed in the Android client. Never use a service-role key.
+
+`AppConfig` reads the generated values, `AppContainer` owns one lazy client, and `SupabaseProvider` installs Auth, PostgREST, and Storage. A blank configuration returns `null`; no connection occurs during application startup.
 
 ## Team workflow
 
-Suggested branch convention: `feature/<owner>-<short-topic>`, `fix/<short-topic>`, and `docs/<short-topic>`. Examples: `feature/vincent-wardrobe-filter` and `fix/planner-date-validation`. Create and switch branches manually; automation must not do it for you.
+Follow [TEAM_ONBOARDING.md](docs/TEAM_ONBOARDING.md). In short: work on the assigned existing feature branch, merge the latest `develop`, keep feature code inside the owned package, coordinate route changes, test, and open a Pull Request targeting `develop`.
 
-For each member:
+Additional contracts:
 
-1. Pull the shared `develop` baseline and manually create your feature branch.
-2. Work primarily inside your assigned `feature/<name>` package.
-3. Extend the existing model and repository interface before changing UI data access.
-4. Keep Compose functions stateless where practical; send events to the feature ViewModel.
-5. Preserve type-safe route IDs and add routes centrally in `Routes.kt` and `AppNavHost.kt` only when a new screen is required.
-6. Use the shared components and theme; add a shared component only when at least two features need it.
-7. Add fake data first, then tests, then the Supabase implementation during the database milestone.
-8. Run `gradlew.bat :app:assembleDebug` and exercise list, detail, add/edit, delete, and back navigation before opening a merge request.
-
-See the `docs/` directory for the exact navigation, database, repository, UI, and decision contracts.
+- [Navigation](docs/NAVIGATION_CONTRACT.md)
+- [Planned database](docs/DATABASE_CONTRACT.md)
+- [Repository boundaries](docs/REPOSITORY_CONTRACTS.md)
+- [Shared UI](docs/UI_GUIDELINES.md)
+- [Remaining app-level work](docs/TODO.md)

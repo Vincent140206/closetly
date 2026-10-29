@@ -1,22 +1,17 @@
 # Navigation contract
 
-All destinations are declared as `@Serializable` route objects or data classes in `core/navigation/Routes.kt`. `AppNavHost.kt` is the only place that translates UI callbacks into navigation operations. Reusable screens and components must not receive a `NavController`.
+Navigation is centralized in `core/navigation/AppNavHost.kt`. Routes are serializable objects in `Routes.kt`. Screens receive callbacks and must not receive a `NavController`.
 
-## Shared routes
+## Current routes
 
-`LoginRoute` → `RegisterRoute` or `HomeRoute`; `HomeRoute` → `ProfileRoute` → `EditProfileRoute`.
+- `HomeRoute` is the development start destination.
+- `LoginRoute`, `RegisterRoute`, and `ProfileRoute` reserve shared account entry points.
+- `WardrobeRoute`, `OutfitRoute`, `PlannerRoute`, `InspirationRoute`, `WishlistRoute`, and `WearHistoryRoute` preserve stable module identities.
 
-## Feature routes
+The six module routes currently render the same app-level `ModulePlaceholderScreen`, using metadata from `AppModule`. There are no feature List, Detail, Form, or ID-argument routes on `develop`.
 
-| Feature list | Detail route and argument | Add/edit route and argument |
-|---|---|---|
-| `WardrobeRoute` | `ClothingDetailRoute(clothingId)` | `ClothingFormRoute(clothingId?)` |
-| `OutfitCollectionRoute` | `OutfitDetailRoute(outfitId)` | `OutfitFormRoute(outfitId?)` |
-| `PlannerRoute` | `PlanDetailRoute(planId)` | `PlanFormRoute(planId?)` |
-| `InspirationRoute` | `InspirationDetailRoute(inspirationId)` | `InspirationFormRoute(inspirationId?)` |
-| `WishlistRoute` | `WishlistDetailRoute(wishlistId)` | `WishlistFormRoute(wishlistId?)` |
-| `WearHistoryRoute` | `WearHistoryDetailRoute(historyId)` | `WearHistoryFormRoute(historyId?)` |
+## Adding feature routes
 
-Only IDs cross navigation boundaries. A nullable form ID means create mode; a non-null ID means edit mode. Saving pops one destination so add returns to the list and edit returns to detail. Delete returns from detail to list. System back and the shared Back action both use `popBackStack()`.
+Feature owners should define only routes needed by their implemented screens. Prefer serializable objects for argument-free destinations and serializable data classes for lightweight IDs. Never pass full models through navigation.
 
-When adding a destination, define its serializable route, add one `composable<Route>` entry, reconstruct arguments with `toRoute<Route>()`, and pass callbacks to the screen.
+Coordinate changes to `Routes.kt` and `AppNavHost.kt` with the navigation maintainer to minimize merge conflicts. Keep feature navigation callbacks at the graph boundary and preserve functional Back navigation.
