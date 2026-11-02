@@ -1,22 +1,22 @@
-# Team onboarding
+# Onboarding Tim
 
-## Start feature development
+## Mulai mengembangkan fitur
 
-1. Clone the repository and open it in Android Studio.
-2. Fetch remotes and checkout the existing branch assigned to your feature. Do not recreate it.
-3. Merge the latest `develop` into your feature branch and resolve conflicts before adding functionality.
-4. Work inside your owned `feature/<name>` package. Replace its `.gitkeep` with real source files when the first file is added.
-5. Create the feature's models, repository interface, ViewModel, UI state, and screens based on its actual requirements.
-6. Reuse shared theme and app-level UI primitives where they fit; keep feature-specific components in the feature package.
-7. Coordinate new type-safe routes with the navigation maintainer before editing `Routes.kt` or `AppNavHost.kt`.
-8. Add focused unit tests and, where practical, Compose/navigation tests.
-9. Run `gradlew.bat :app:assembleDebug :app:testDebugUnitTest` on Windows.
-10. Push your feature branch and create a Pull Request targeting `develop`.
+1. Clone repository dan buka proyek di Android Studio.
+2. Fetch remote, lalu checkout branch fitur yang sudah ditentukan; jangan membuat branch duplikat.
+3. Merge perubahan terbaru dari `develop` ke branch fitur dan selesaikan conflict sebelum menambah functionality.
+4. Kerjakan package `feature/<nama>` milikmu. Struktur folder standar sudah tersedia; hapus `.gitkeep` hanya dari folder yang sudah memiliki source file.
+5. Ikuti [`FEATURE_DEVELOPMENT_GUIDE.md`](FEATURE_DEVELOPMENT_GUIDE.md) dan scope di [`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md).
+6. Buat model, repository interface, ViewModel, UI state, screen, dan test sesuai kebutuhan nyata fitur.
+7. Gunakan shared theme dan app-level UI primitives jika sesuai; simpan komponen khusus fitur di package fitur.
+8. Koordinasikan route type-safe baru dengan navigation maintainer sebelum mengubah `Routes.kt` atau `AppNavHost.kt`.
+9. Jalankan `gradlew.bat :app:assembleDebug :app:testDebugUnitTest` di Windows.
+10. Push branch fitur dan buat Pull Request menuju `develop`.
 
-## Ownership rules
+## Aturan ownership
 
-- Do not implement or reorganize another member's feature without coordination.
-- Do not add fake implementations for unowned modules to `develop`.
-- Do not expose Supabase clients directly to Composables.
-- Never commit `local.properties`, `secrets.properties`, `.env` files, keystores, or service-role keys.
-- Keep shared changes narrowly scoped so other branches can merge them safely.
+- Ubah hanya package fitur milikmu, kecuali shared change sudah disepakati.
+- Jangan membuat `SupabaseClient` baru di setiap fitur atau mengeksposnya langsung ke Composable.
+- Jangan commit `local.properties`, `secrets.properties`, `.env`, keystore, atau service-role key.
+- Jaga shared change tetap kecil agar aman di-merge oleh branch lain.
+- `feature/inspiration` dan branch `feature/inspiration-board` sekarang dimiliki fitur Community dan tidak perlu di-rename.
