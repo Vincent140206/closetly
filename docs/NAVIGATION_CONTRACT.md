@@ -1,17 +1,36 @@
-# Navigation contract
+# Kontrak Navigation
 
-Navigation is centralized in `core/navigation/AppNavHost.kt`. Routes are serializable objects in `Routes.kt`. Screens receive callbacks and must not receive a `NavController`.
+Navigation tetap terpusat di `core/navigation/AppNavHost.kt`. Route adalah type-safe serializable object/data class di `Routes.kt`. Screen menerima callback dan tidak menerima `NavController`.
 
-## Current routes
+## Route saat ini
 
-- `HomeRoute` is the development start destination.
-- `LoginRoute`, `RegisterRoute`, and `ProfileRoute` reserve shared account entry points.
-- `WardrobeRoute`, `OutfitRoute`, `PlannerRoute`, `InspirationRoute`, `WishlistRoute`, and `WearHistoryRoute` preserve stable module identities.
+- `HomeRoute` adalah development start destination.
+- `LoginRoute`, `RegisterRoute`, dan `ProfileRoute` menjalankan flow Auth/Profile yang sudah ada.
+- `WardrobeRoute`, `OutfitRoute`, `PlannerRoute`, `InspirationRoute`, `WishlistRoute`, dan `WearHistoryRoute` menjaga identitas enam modul.
+- Enam route fitur masih membuka `ModulePlaceholderScreen` bersama karena folder standardisasi sengaja belum berisi screen implementation.
 
-The six module routes currently render the same app-level `ModulePlaceholderScreen`, using metadata from `AppModule`. There are no feature List, Detail, Form, or ID-argument routes on `develop`.
+`InspirationRoute` sekarang mewakili **Community**. Nama route, package `feature/inspiration`, dan branch `feature/inspiration-board` tidak diubah untuk kompatibilitas.
 
-## Adding feature routes
+## Root screen yang akan dihubungkan
 
-Feature owners should define only routes needed by their implemented screens. Prefer serializable objects for argument-free destinations and serializable data classes for lightweight IDs. Never pass full models through navigation.
+| Route | Root screen yang dibuat pemilik fitur |
+|---|---|
+| `WardrobeRoute` | `WardrobeScreen` |
+| `OutfitRoute` | `OutfitScreen` |
+| `PlannerRoute` | `PlannerScreen` |
+| `InspirationRoute` | `CommunityScreen` |
+| `WishlistRoute` | `WishlistScreen` |
+| `WearHistoryRoute` | `WearHistoryScreen` |
 
-Coordinate changes to `Routes.kt` and `AppNavHost.kt` with the navigation maintainer to minimize merge conflicts. Keep feature navigation callbacks at the graph boundary and preserve functional Back navigation.
+Pemilik fitur mengganti placeholder hanya setelah screen dan ViewModel-nya compile. Auth/Profile navigation dan session behavior tidak boleh ikut ditulis ulang.
+
+## Route lanjutan
+
+- List/root screen tanpa argument menggunakan `data object`.
+- Detail/create/edit hanya ditambahkan saat screen benar-benar dibuat.
+- Detail/edit memakai serializable data class berisi ID ringan, misalnya `outfitId: String`.
+- Jangan mengirim model, byte image, URL bertanda tangan, atau credential melalui navigation.
+- Feature screen menerima callback `onBack`, `onOpenDetail(id)`, atau `onCreate`; central graph memegang aksi navigate.
+- Back dari form/detail kembali ke list. Logout tetap membersihkan destination authenticated yang obsolete.
+
+Perubahan `Routes.kt` dan `AppNavHost.kt` harus dikoordinasikan untuk mencegah duplicate route dan merge conflict.

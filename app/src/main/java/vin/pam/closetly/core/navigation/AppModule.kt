@@ -25,10 +25,10 @@ enum class AppModule(
         description = "Plan outfits for dates and activities.",
     ),
     Inspiration(
-        title = "Style Inspiration Board",
+        title = "Community",
         owner = "Sela",
         branch = "feature/inspiration-board",
-        description = "Collect and organize fashion references.",
+        description = "Share outfit inspiration in a public feed.",
     ),
     Wishlist(
         title = "Fashion Wishlist",
