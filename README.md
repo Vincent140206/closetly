@@ -1,6 +1,6 @@
 # Closetly
 
-Closetly adalah aplikasi Android untuk mengelola koleksi pakaian, membuat kombinasi outfit, merencanakan outfit, menyimpan inspirasi fashion, mencatat wishlist, dan melihat riwayat pemakaian. Proyek ini dibuat sebagai tugas akhir kelompok untuk mata kuliah Pemrograman Aplikasi Mobile.
+Closetly adalah aplikasi Android untuk mengelola koleksi pakaian, membuat kombinasi outfit, merencanakan outfit, berbagi inspirasi melalui Community, mencatat wishlist, dan melihat riwayat pemakaian. Proyek ini dibuat sebagai tugas akhir kelompok untuk mata kuliah Pemrograman Aplikasi Mobile.
 
 ## Tech Stack
 
@@ -10,15 +10,15 @@ Closetly adalah aplikasi Android untuk mengelola koleksi pakaian, membuat kombin
 | Jetpack Compose | Membuat tampilan Android secara deklaratif |
 | Material 3 | Theme dan komponen UI dasar |
 | Navigation Compose | Mengatur perpindahan screen dengan type-safe route |
-| ViewModel dan StateFlow | Direncanakan untuk state management di setiap fitur |
-| Supabase | SDK sudah disiapkan untuk Auth, database, dan Storage |
+| ViewModel dan StateFlow | State management Auth/Profile dan standar fitur |
+| Supabase | Auth/Profile aktif; SDK PostgREST dan Storage tersedia |
 | Gradle Kotlin DSL | Konfigurasi build dan dependency |
 
-Supabase SDK sudah ada di proyek, tetapi aplikasi belum terhubung ke database Supabase yang aktif.
+Auth dan Profile sudah memakai satu shared Supabase client. Enam fitur individual belum memiliki repository/CRUD dan foldernya sengaja hanya berupa struktur kosong untuk diisi pemilik fitur.
 
 ## Status Proyek
 
-Branch `develop` saat ini hanya berisi application-level boilerplate.
+Branch `develop` saat ini berisi shared application foundation, Auth/Profile, dan struktur folder standar enam fitur.
 
 Yang sudah tersedia:
 
@@ -27,17 +27,19 @@ Yang sudah tersedia:
 - Navigation yang terpusat
 - Home screen dengan enam pilihan fitur
 - Placeholder untuk setiap fitur
-- Fondasi konfigurasi Supabase
+- Email/password Auth, session restoration, logout, dan basic Profile
+- Fondasi konfigurasi Supabase, PostgREST, dan Storage
+- Folder `data/dto`, `data/repository`, `model`, dan `ui/components` untuk tiap fitur
+- Kontrak final delapan tabel dan panduan pengembangan fitur
 
 Yang belum diimplementasikan:
 
-- Enam fitur utama
-- Authentication dan profile management yang nyata
+- Enam fitur utama dan root screen masing-masing
 - ViewModel dan repository khusus fitur
 - Supabase CRUD
 - Image upload dan Storage integration
 
-Screen bertuliskan **Not implemented yet** adalah placeholder yang disengaja, bukan error aplikasi.
+Screen bertuliskan **Not implemented yet** adalah placeholder yang disengaja, bukan error aplikasi. Struktur folder bukan bukti bahwa fitur sudah diimplementasikan.
 
 ## Tim dan Pembagian Fitur
 
@@ -46,7 +48,7 @@ Screen bertuliskan **Not implemented yet** adalah placeholder yang disengaja, bu
 | Vincent | Digital Wardrobe | `feature/digital-wardrobe` |
 | Janice | Mix & Match Outfit | `feature/mix-and-match` |
 | Vara | Outfit Planner | `feature/outfit-planner` |
-| Sela | Style Inspiration Board | `feature/inspiration-board` |
+| Sela | Community | `feature/inspiration-board` |
 | Gres | Fashion Wishlist | `feature/fashion-wishlist` |
 | Aurel | Wear History | `feature/wear-history` |
 
@@ -135,12 +137,13 @@ Command `--track` hanya diperlukan jika branch tersebut belum ada secara lokal.
 
 1. Switch ke branch fitur yang sudah ditentukan.
 2. Merge perubahan terbaru dari `origin/develop`.
-3. Buka package fitur milikmu di `app/src/main/java/vin/pam/closetly/feature/`.
-4. Implementasikan model, repository, ViewModel, UI state, screen, dan komponen yang memang dibutuhkan fitur.
-5. Gunakan shared theme dan components jika sesuai.
-6. Test perubahan dan pastikan aplikasi dapat di-build.
-7. Commit dan push pekerjaanmu.
-8. Buat Pull Request ke `develop`.
+3. Baca [`docs/FEATURE_DEVELOPMENT_GUIDE.md`](docs/FEATURE_DEVELOPMENT_GUIDE.md) dan [`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md).
+4. Buka package fitur milikmu di `app/src/main/java/vin/pam/closetly/feature/`.
+5. Implementasikan model, repository, ViewModel, UI state, screen, dan komponen yang memang dibutuhkan fitur.
+6. Gunakan shared theme dan components jika sesuai.
+7. Test perubahan dan pastikan aplikasi dapat di-build.
+8. Commit dan push pekerjaanmu.
+9. Buat Pull Request ke `develop`.
 
 Contoh commit dan push untuk Digital Wardrobe:
 
@@ -194,7 +197,7 @@ app/src/main/java/vin/pam/closetly/
 |   |-- wardrobe/
 |   |-- outfit/
 |   |-- planner/
-|   |-- inspiration/
+|   |-- inspiration/     # Community; nama dipertahankan untuk kompatibilitas
 |   |-- wishlist/
 |   `-- wearhistory/
 `-- ui/
@@ -210,23 +213,26 @@ Kegunaan folder penting:
 - `core/ui/shell`: Home dan module placeholder untuk development shell.
 - `di`: application-level dependency container.
 - `feature/auth` dan `feature/profile`: shared authentication dan profile.
-- Enam package fitur: area kerja masing-masing anggota.
+- Enam package fitur: area kerja masing-masing anggota. Masing-masing sudah memiliki folder `data/dto`, `data/repository`, `model`, dan `ui/components` yang masih kosong.
 - `ui/theme`: warna, typography, dan Material 3 theme.
 
-Di dalam package fitur milikmu, kamu dapat membuat struktur sederhana seperti:
+Di dalam package fitur milikmu, struktur folder standarnya adalah:
 
 ```text
 feature/wardrobe/
-|-- data/          # Model, DTO, dan repository
-|-- ui/            # Screen, UI state, dan components
-`-- WardrobeViewModel.kt
+|-- data/
+|   |-- dto/
+|   `-- repository/
+|-- model/
+`-- ui/
+    `-- components/
 ```
 
-Struktur tersebut adalah panduan. Sesuaikan dengan kebutuhan fitur dan jangan membuat file kosong yang tidak digunakan.
+Source file belum dibuat. Pemilik fitur menambahkan model, repository, `<Feature>ViewModel`, `<Feature>UiState`, dan `<Feature>Screen` ketika mulai implementasi.
 
 ## Konfigurasi Supabase
 
-Supabase bersifat opsional untuk boilerplate saat ini dan akan diperlukan pada milestone database integration.
+Supabase diperlukan untuk Auth/Profile dan kelak untuk data fitur. Aplikasi tetap menyediakan recoverable state jika credential lokal belum ada.
 
 Saat konfigurasi sudah dibutuhkan, buat file `secrets.properties` di root repository:
 
@@ -241,7 +247,7 @@ Perhatikan aturan berikut:
 - Jangan membagikan service-role key atau secret key.
 - Gunakan hanya publishable/anon key pada aplikasi Android.
 - Aplikasi saat ini tetap dapat berjalan tanpa credential Supabase.
-- Authentication, CRUD, dan Storage integration belum diimplementasikan.
+- Auth/Profile sudah diimplementasikan; CRUD enam fitur dan image Storage belum.
 
 ## Masalah Umum
 
@@ -281,9 +287,9 @@ git commit
 
 Jangan menghapus perubahan anggota lain tanpa koordinasi.
 
-### Aplikasi hanya menampilkan "Not implemented yet"
+### Fitur hanya menampilkan "Not implemented yet"
 
-Itu adalah kondisi yang benar untuk boilerplate saat ini. Implementasi fitur harus dibuat pada branch masing-masing.
+Itu adalah kondisi yang benar untuk standardisasi saat ini. Implementasi fitur harus dibuat pada branch masing-masing.
 
 ### Supabase belum dikonfigurasi
 
@@ -299,4 +305,4 @@ Tidak masalah untuk tahap UI awal. Aplikasi dirancang agar dapat berjalan tanpa 
 - Jangan commit credential, `.env`, `local.properties`, atau `secrets.properties`.
 - Test dan build proyek sebelum membuat Pull Request.
 
-Dokumentasi teknis tambahan tersedia di folder [`docs/`](docs/). Jaga branch tetap rapi dan saling koordinasi agar pengembangan Closetly berjalan lancar.
+Dokumentasi teknis tambahan tersedia di folder [`docs/`](docs/), terutama [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), panduan fitur, kontrak repository/navigation, dan [`docs/DATABASE_CONTRACT.md`](docs/DATABASE_CONTRACT.md). Jaga branch tetap rapi dan saling koordinasi agar pengembangan Closetly berjalan lancar.
