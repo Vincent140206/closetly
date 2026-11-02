@@ -1,14 +1,66 @@
-# Repository boundaries
+# Kontrak Repository
 
-No feature repository interface or implementation exists on `develop`. This is intentional: repository APIs should follow actual feature use cases instead of a generic CRUD abstraction.
+Folder `data/repository` sudah tersedia tetapi sengaja kosong. Pemilik fitur membuat interface saat implementasi dimulai dan baru membuat Supabase implementation setelah tabel/RPC aktif diverifikasi.
 
-When implementing a feature:
+## Aturan umum
 
-- Define the repository interface inside the owned feature package.
-- Keep Supabase DTO mapping and network/storage calls in that feature's data layer.
-- Make the ViewModel depend on the interface, not directly on `SupabaseClient`.
-- Add an in-memory fake only when it supports UI development or tests for that feature.
-- Expose business operations with meaningful names rather than forcing every feature into one generic base repository.
-- Scope all future Supabase operations to the authenticated user and rely on Row Level Security as the security boundary.
+- Satu interface repository per fitur; tidak ada generic CRUD/base repository.
+- ViewModel bergantung pada interface, bukan `SupabaseClient` atau implementation konkret.
+- Supabase implementation menggunakan shared client dari application container/factory lokal fitur.
+- Repository tidak bergantung pada Composable, `NavController`, atau UI state.
+- Operasi memakai nama use case, bukan sekadar `insertRow`/`updateRow`.
+- User ID berasal dari authenticated session; jangan percaya user ID dari input screen.
+- DTO, mapping, PostgREST, dan Storage call berada di data layer.
+- Signed URL bersifat sementara dan tidak disimpan permanen.
+- Rethrow `CancellationException`; terjemahkan network/constraint failure menjadi error domain yang jelas.
+- Fake repository hanya dibuat untuk test atau UI development yang nyata, bukan sekadar memenuhi struktur.
 
-Register cross-feature or application-wide dependencies in `AppContainer` only when multiple consumers actually need them. A feature may provide its own factory until a shared dependency pattern becomes necessary.
+## Scope operasi per repository
+
+### `WardrobeRepository`
+
+- List/detail clothing item.
+- Create/update.
+- Archive item; hard delete harus menangani referensi outfit.
+
+### `OutfitRepository`
+
+- List/detail outfit dengan ordered item IDs.
+- Create/update kombinasi.
+- Delete hanya jika tidak merusak Planner/Wear History.
+
+### `PlannerRepository`
+
+- List plan.
+- Create plan + pending history secara atomik.
+- Update plan + linked pending history.
+- Cancel plan dengan aturan history yang konsisten.
+- Mark as Worn dengan tanggal aktual.
+
+Workflow lintas `outfit_plans` dan `wear_history` harus menggunakan RPC/database transaction yang sudah diverifikasi, bukan dua request terpisah.
+
+### `CommunityRepository`
+
+- Public feed tanpa sesi.
+- Create post dari image upload.
+- Create post dari saved outfit sambil membuat asset publik terpisah.
+- Update/delete post milik author.
+
+Repository tidak boleh membuat private Wardrobe/Outfit Storage object menjadi publik.
+
+### `WishlistRepository`
+
+- List, create, update, mark purchased, dan delete wishlist item milik user.
+
+### `WearHistoryRepository`
+
+- List pending dan worn entry.
+- Create manual worn entry.
+- Mark pending entry as worn dengan tanggal aktual.
+- Mencegah duplicate `source_plan_id`.
+
+## Dependency wiring
+
+Auth dan Profile tetap memakai binding `AppContainer` yang sudah bekerja. Enam feature repository tidak didaftarkan secara prematur. Saat implementasi dimulai, pemilik fitur dapat membuat factory lokal yang menerima shared `SupabaseClient`; pindahkan binding ke `AppContainer` hanya jika benar-benar menjadi dependency aplikasi lintas fitur.
+
+Target schema dan requirement RLS tersedia di [`DATABASE_CONTRACT.md`](DATABASE_CONTRACT.md).

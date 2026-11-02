@@ -1,81 +1,128 @@
-# Database contract (planned Supabase milestone)
+# Kontrak Database Closetly
 
-This is a schema contract, not an applied migration. Use PostgreSQL `uuid` primary keys generated server-side, `timestamptz` audit columns, and `auth.users(id)` as the ownership source. Every user-owned row has a non-null `user_id` even when ownership can be inferred through a parent; the redundancy makes RLS and indexing explicit.
+Dokumen ini menetapkan target logical schema minimal. Ini bukan bukti bahwa schema sudah terpasang dan bukan migration yang boleh langsung dijalankan.
 
-## Tables
+Pada 2 November 2026, introspeksi read-only melalui endpoint OpenAPI dicoba memakai publishable key lokal. Supabase menolak schema introspection karena endpoint tersebut membutuhkan secret key. Secret/service-role key tidak digunakan. Karena schema aktif belum terverifikasi, task standardisasi ini tidak membuat atau menjalankan migration SQL.
+
+Sebelum migration berikutnya, maintainer database harus membandingkan target ini dengan schema aktif melalui Dashboard/SQL Editor atau koneksi database berizin. Migration harus additive, mempertahankan data, dan tidak boleh melakukan `drop table`, truncate, atau destructive rewrite otomatis.
+
+## Delapan tabel aplikasi
 
 ### `profiles`
 
 - `id uuid primary key references auth.users(id) on delete cascade`
-- `display_name text not null`, `avatar_path text`, `created_at`, `updated_at`
+- `display_name text not null`
+- `avatar_path text null`
+- `created_at timestamptz`, `updated_at timestamptz`
 
 ### `clothing_items`
 
-- `id uuid primary key`, `user_id uuid not null references profiles(id)`
-- `name`, `color`, `size`, `category` as required text
-- `image_path text`, `created_at`, `updated_at`, optional `archived_at`
+- `id uuid primary key`, `user_id uuid not null`
+- `name`, `category`, `color`, `size` sebagai text
+- `image_path text null`
+- `is_archived boolean not null default false`
+- `created_at`, `updated_at`
+
+Tidak ada kolom global worn status. Status pemakaian berada di `wear_history`.
 
 ### `outfits`
 
-- `id uuid primary key`, `user_id uuid not null references profiles(id)`
-- `name text not null`, `description text`, `cover_image_path text`, audit columns
+- `id uuid primary key`, `user_id uuid not null`
+- `name text not null`, `description text null`
+- `cover_image_path text null`
+- `created_at`, `updated_at`
 
 ### `outfit_items`
 
-- `id uuid primary key`, `user_id uuid not null references profiles(id)`
+- `id uuid primary key`, `user_id uuid not null`
 - `outfit_id uuid not null references outfits(id) on delete cascade`
 - `clothing_item_id uuid not null references clothing_items(id) on delete restrict`
-- `position integer not null`, optional `role text`
+- `position integer not null`
 - unique `(outfit_id, clothing_item_id, position)`
 
 ### `outfit_plans`
 
-- `id uuid primary key`, `user_id uuid not null references profiles(id)`
+- `id uuid primary key`, `user_id uuid not null`
 - `outfit_id uuid not null references outfits(id) on delete restrict`
-- `planned_date date not null`, `activity text not null`, `notes text`
-- `status text not null` constrained to `planned`, `completed`, or `cancelled`
-- audit columns
-
-### `style_inspirations`
-
-- `id uuid primary key`, `user_id uuid not null references profiles(id)`
-- `title text not null`, `notes text`, `image_path text not null`
-- optional `collection_id uuid`; add a separate `inspiration_collections` table if the group selects collections
-- audit columns
-
-If the community option is selected, add separate post/bookmark concepts after proposal approval. Do not overload ownership or RLS semantics of private inspiration rows.
-
-### `fashion_wishlist`
-
-- `id uuid primary key`, `user_id uuid not null references profiles(id)`
-- `name`, `category` required text; `estimated_price numeric(12,2)` with non-negative check
-- `store text`, `product_url text`, `image_path text`, `priority text`
-- `is_purchased boolean not null default false`, audit columns
+- `planned_date date not null`
+- `activity text not null`, `notes text null`
+- `status text not null`: `planned`, `completed`, atau `cancelled`
+- `created_at`, `updated_at`
 
 ### `wear_history`
 
-- `id uuid primary key`, `user_id uuid not null references profiles(id)`
+- `id uuid primary key`, `user_id uuid not null`
 - `outfit_id uuid not null references outfits(id) on delete restrict`
-- `date_worn date not null`, `notes text`, `source_plan_id uuid references outfit_plans(id) on delete set null`
-- audit columns
-- a partial unique index on `(user_id, source_plan_id)` where `source_plan_id is not null`
+- `source_plan_id uuid null references outfit_plans(id)`
+- `planned_date date null`
+- `worn_date date null`
+- `is_worn boolean not null default false`
+- `notes text null`
+- `created_at`, `updated_at`
+- partial unique index pada `source_plan_id` saat nilainya tidak null
+
+Constraint target:
+
+- Pending planner entry: `source_plan_id` terisi, `is_worn = false`, `worn_date = null`.
+- Worn entry: `is_worn = true` dan `worn_date` wajib terisi.
+- Manual entry: `source_plan_id = null`, `is_worn = true`, dan `worn_date` terisi.
+
+### `community_posts`
+
+- `id uuid primary key`, `user_id uuid not null`
+- `caption text not null`
+- `image_path text not null` menuju bucket publik Community
+- `source_outfit_id uuid null references outfits(id) on delete set null`
+- `created_at`, `updated_at`
+
+`image_path` tidak boleh menunjuk object private Wardrobe/Outfit. Post yang bersumber dari saved outfit harus memiliki asset publik tersendiri.
+
+### `fashion_wishlist`
+
+- `id uuid primary key`, `user_id uuid not null`
+- `name`, `category` sebagai text wajib
+- `estimated_price numeric(12,2) null` dengan nilai non-negatif
+- `store`, `product_url`, `image_path` sebagai text nullable
+- `priority text null`: `low`, `medium`, atau `high`
+- `is_purchased boolean not null default false`
+- `created_at`, `updated_at`
+
+## Lifecycle Planner dan Wear History
+
+Operasi lintas tabel harus dilakukan secara transaksional melalui RPC/database function yang diverifikasi:
+
+1. Create plan membuat `outfit_plans` dan tepat satu pending `wear_history`.
+2. Update plan menyinkronkan outfit/planned date pada linked history selama `is_worn = false`.
+3. Mark as Worn membutuhkan tanggal aktual, mengubah history menjadi worn, dan status plan menjadi `completed`.
+4. Tanggal rencana yang lewat tidak menjalankan perubahan otomatis.
+5. Cancel mengubah status plan menjadi `cancelled`; pending history boleh dihapus/ditandai batal sesuai migration final, tetapi history yang sudah worn tidak boleh dihapus.
+6. Unique `source_plan_id` menjadikan retry idempotent dan mencegah duplikat.
+
+Nama/signature RPC belum dikunci sampai fungsi aktif di database diperiksa. Jangan membuat dua write terpisah dari Android untuk workflow ini.
 
 ## Row Level Security
 
-Enable RLS on every public table. Authenticated users may select, insert, update, and delete only rows where `user_id = auth.uid()`. `profiles` uses `id = auth.uid()`. Child inserts/updates must additionally verify referenced outfit, clothing, or plan rows belong to the same `auth.uid()`; foreign keys alone do not enforce equal ownership.
+- `profiles`: user hanya mengubah row dengan `id = auth.uid()`.
+- Tabel private: user hanya CRUD row dengan `user_id = auth.uid()`.
+- Referensi child harus memverifikasi parent dimiliki user yang sama.
+- `community_posts`: public dapat select; authenticated user dapat insert dengan `user_id = auth.uid()`; update/delete hanya author.
+- Policy database adalah security boundary. Filter client bukan pengganti RLS.
 
-Storage should use a private bucket such as `closetly-images`. Policies must restrict objects to a first path segment equal to the authenticated user's UUID. Use signed URLs or authenticated downloads for display. Never expose a service-role key in Android.
+## Storage
 
-## Reference and deletion behavior
+- Private bucket `closetly-images`: avatar, wardrobe, outfit, wishlist, dan asset private lainnya.
+- Separate public Community bucket: public read, authenticated write/update/delete hanya pada path berprefix user ID.
+- Saat membuat Community post dari saved outfit, salin/render image ke bucket Community; jangan mengubah visibility object private.
+- Database menyimpan path, bukan signed URL.
 
-- A clothing item referenced by `outfit_items` must not be hard-deleted. Offer archive, show the blocking outfits, or require users to remove those references first.
-- An outfit referenced by a plan or wear-history entry must not be hard-deleted. Prefer archive so history remains meaningful.
-- Deleting an outfit may cascade only its join rows when no planner/history reference exists.
-- Deleting a planner row sets `wear_history.source_plan_id` to null but must not delete the historical record.
-- Profile/account deletion is a deliberate account-level operation and may cascade user data after confirmation and Storage cleanup.
+Nama final bucket Community dan policy aktif harus diverifikasi sebelum implementasi repository.
 
-Repositories must translate database constraint failures into clear user-facing conflicts. Do not silently cascade through cross-feature records.
+## Checklist migration aman
 
-## Indexes and timestamps
-
-Index each `user_id`, all foreign keys, `outfit_plans(user_id, planned_date)`, `wear_history(user_id, date_worn desc)`, and useful category/status filters. Maintain `updated_at` with a database trigger rather than trusting the client clock.
+- Ambil inventory tabel, kolom, constraint, index, trigger, RPC, RLS, dan bucket aktif.
+- Buat backup dan uji migration di environment non-production.
+- Gunakan `alter table ... add column if not exists` dan backfill bertahap bila sesuai.
+- Tambahkan constraint setelah data lama tervalidasi.
+- Jangan drop tabel/data lama otomatis.
+- Uji dua akun untuk ownership dan anonymous user untuk public Community feed.
+- Uji retry Create Plan agar tidak menghasilkan duplicate history.
