@@ -10,13 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,8 +24,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.dp
+import vin.pam.closetly.core.ui.components.ClosetlyButton
+import vin.pam.closetly.core.ui.components.ClosetlyButtonStyle
+import vin.pam.closetly.core.ui.components.ClosetlyCard
 import vin.pam.closetly.core.ui.components.ClosetlyScaffold
+import vin.pam.closetly.core.ui.components.ClosetlyTextButton
+import vin.pam.closetly.ui.theme.ClosetlySpacing
 
 @Composable
 fun LoginScreen(
@@ -45,12 +45,12 @@ fun LoginScreen(
         uiState.sessionState !is AuthSessionState.Unavailable &&
         !uiState.isSubmitting
 
-    AuthFormScaffold(title = "Login", onBack = onBack) {
-        Text(
-            text = "Sign in to access your Supabase profile.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    AuthFormScaffold(
+        title = "Login",
+        heading = "Welcome back.",
+        supportingText = "Sign in to continue building your wardrobe story.",
+        onBack = onBack,
+    ) {
         SessionAvailabilityMessage(uiState.sessionState)
         OutlinedTextField(
             value = email,
@@ -63,6 +63,7 @@ fun LoginScreen(
                 imeAction = ImeAction.Next,
             ),
             enabled = !uiState.isSubmitting,
+            shape = MaterialTheme.shapes.medium,
         )
         PasswordField(
             value = password,
@@ -75,26 +76,20 @@ fun LoginScreen(
         )
         FeedbackMessage(uiState.errorMessage, isError = true)
         FeedbackMessage(uiState.noticeMessage, isError = false)
-        Button(
+        ClosetlyButton(
+            text = if (uiState.isSubmitting) "Signing in..." else "Login",
             onClick = { onLogin(email, password) },
             modifier = Modifier.fillMaxWidth(),
             enabled = canSubmit,
-        ) {
-            if (uiState.isSubmitting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(end = 8.dp),
-                    strokeWidth = 2.dp,
-                )
-            }
-            Text(if (uiState.isSubmitting) "Signing in..." else "Login")
-        }
-        OutlinedButton(
+            isLoading = uiState.isSubmitting,
+        )
+        ClosetlyButton(
+            text = "Create an account",
             onClick = onRegister,
             modifier = Modifier.fillMaxWidth(),
+            style = ClosetlyButtonStyle.Secondary,
             enabled = !uiState.isSubmitting,
-        ) {
-            Text("Create an account")
-        }
+        )
     }
 }
 
@@ -120,12 +115,12 @@ fun RegisterScreen(
         uiState.sessionState !is AuthSessionState.Unavailable &&
         !uiState.isSubmitting
 
-    AuthFormScaffold(title = "Register", onBack = onBack) {
-        Text(
-            text = "Create an account. Your profile row is created by the existing database trigger.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    AuthFormScaffold(
+        title = "Register",
+        heading = "Create your account.",
+        supportingText = "Save your wardrobe and keep every outfit idea in one place.",
+        onBack = onBack,
+    ) {
         SessionAvailabilityMessage(uiState.sessionState)
         OutlinedTextField(
             value = displayName,
@@ -135,6 +130,7 @@ fun RegisterScreen(
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             enabled = !uiState.isSubmitting,
+            shape = MaterialTheme.shapes.medium,
         )
         OutlinedTextField(
             value = email,
@@ -147,6 +143,7 @@ fun RegisterScreen(
                 imeAction = ImeAction.Next,
             ),
             enabled = !uiState.isSubmitting,
+            shape = MaterialTheme.shapes.medium,
         )
         PasswordField(
             value = password,
@@ -168,32 +165,27 @@ fun RegisterScreen(
         )
         FeedbackMessage(uiState.errorMessage, isError = true)
         FeedbackMessage(uiState.noticeMessage, isError = false)
-        Button(
+        ClosetlyButton(
+            text = if (uiState.isSubmitting) "Creating account..." else "Register",
             onClick = { onRegister(displayName, email, password, confirmPassword) },
             modifier = Modifier.fillMaxWidth(),
             enabled = canSubmit,
-        ) {
-            if (uiState.isSubmitting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(end = 8.dp),
-                    strokeWidth = 2.dp,
-                )
-            }
-            Text(if (uiState.isSubmitting) "Creating account..." else "Register")
-        }
-        TextButton(
+            isLoading = uiState.isSubmitting,
+        )
+        ClosetlyTextButton(
+            text = "Already registered? Login",
             onClick = onLogin,
             modifier = Modifier.align(Alignment.CenterHorizontally),
             enabled = !uiState.isSubmitting,
-        ) {
-            Text("Already registered? Login")
-        }
+        )
     }
 }
 
 @Composable
 private fun AuthFormScaffold(
     title: String,
+    heading: String,
+    supportingText: String,
     onBack: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -204,10 +196,26 @@ private fun AuthFormScaffold(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .imePadding()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            content = content,
-        )
+                .padding(ClosetlySpacing.Lg),
+            verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Lg),
+        ) {
+            Text(
+                text = heading,
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = supportingText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ClosetlyCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Md),
+                    content = content,
+                )
+            }
+        }
     }
 }
 
@@ -233,15 +241,18 @@ private fun PasswordField(
             PasswordVisualTransformation()
         },
         trailingIcon = {
-            TextButton(onClick = onVisibilityChange, enabled = enabled) {
-                Text(if (visible) "Hide" else "Show")
-            }
+            ClosetlyTextButton(
+                text = if (visible) "Hide" else "Show",
+                onClick = onVisibilityChange,
+                enabled = enabled,
+            )
         },
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Password,
             imeAction = imeAction,
         ),
         enabled = enabled,
+        shape = MaterialTheme.shapes.medium,
     )
 }
 
@@ -265,11 +276,7 @@ private fun FeedbackMessage(message: String?, isError: Boolean) {
     if (message == null) return
     Text(
         text = message,
-        color = if (isError) {
-            MaterialTheme.colorScheme.error
-        } else {
-            MaterialTheme.colorScheme.primary
-        },
+        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
         style = MaterialTheme.typography.bodyMedium,
     )
 }

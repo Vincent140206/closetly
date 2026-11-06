@@ -3,13 +3,14 @@ package vin.pam.closetly.core.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import vin.pam.closetly.ui.theme.ClosetlySpacing
 
 @Composable
 fun ErrorState(
@@ -18,17 +19,25 @@ fun ErrorState(
     onRetry: (() -> Unit)? = null,
 ) {
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().padding(ClosetlySpacing.Xl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(
+            space = ClosetlySpacing.Md,
+            alignment = Alignment.CenterVertically,
+        ),
     ) {
         Text(
-            message,
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
         )
         if (onRetry != null) {
-            TextButton(onClick = onRetry) { Text("Try again") }
+            ClosetlyButton(
+                text = "Try again",
+                onClick = onRetry,
+                style = ClosetlyButtonStyle.Secondary,
+            )
         }
     }
 }

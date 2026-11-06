@@ -2,6 +2,8 @@
 
 Navigation tetap terpusat di `core/navigation/AppNavHost.kt`. Route adalah type-safe serializable object/data class di `Routes.kt`. Screen menerima callback dan tidak menerima `NavController`.
 
+`AppNavHost` juga menjadi pemilik satu `ClosetlyBottomBar`. Bottom bar tidak dibuat ulang oleh feature screen.
+
 ## Route saat ini
 
 - `HomeRoute` adalah development start destination.
@@ -10,6 +12,24 @@ Navigation tetap terpusat di `core/navigation/AppNavHost.kt`. Route adalah type-
 - Enam route fitur masih membuka `ModulePlaceholderScreen` bersama karena folder standardisasi sengaja belum berisi screen implementation.
 
 `InspirationRoute` sekarang mewakili **Community**. Nama route, package `feature/inspiration`, dan branch `feature/inspiration-board` tidak diubah untuk kompatibilitas.
+
+## Bottom navigation
+
+Lima destination utama:
+
+| Label | Route |
+|---|---|
+| Beranda | `HomeRoute` |
+| Lemari | `WardrobeRoute` |
+| Outfit | `OutfitRoute` |
+| Planner | `PlannerRoute` |
+| Komunitas | `InspirationRoute` |
+
+- Selected item mengikuti current destination.
+- Tab navigation memakai `launchSingleTop`, state restoration, dan `popUpTo<HomeRoute>` agar tidak menumpuk destination duplikat.
+- Bottom bar hanya tampil pada lima route utama.
+- Login, Register, Profile, Wishlist, dan Wear History tidak menampilkan bottom bar.
+- Wishlist dan Wear History tetap dapat diakses dari Home.
 
 ## Root screen yang akan dihubungkan
 

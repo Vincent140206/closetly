@@ -1,6 +1,7 @@
 package vin.pam.closetly.core.ui.components
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 
@@ -13,6 +14,8 @@ fun ClosetlyScaffold(
     content: @Composable (PaddingValues) -> Unit,
 ) {
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
             ClosetlyTopBar(
                 title = title,
