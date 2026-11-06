@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,9 +19,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import vin.pam.closetly.core.ui.components.ClosetlyButton
+import vin.pam.closetly.core.ui.components.ClosetlyButtonStyle
+import vin.pam.closetly.core.ui.components.ClosetlyCard
 import vin.pam.closetly.core.ui.components.ClosetlyScaffold
+import vin.pam.closetly.core.ui.components.LoadingState
 import vin.pam.closetly.feature.auth.AuthSessionState
+import vin.pam.closetly.ui.theme.ClosetlySpacing
 
 @Composable
 fun ProfileScreen(
@@ -42,10 +44,7 @@ fun ProfileScreen(
         onAction = if (authState is AuthSessionState.Authenticated) onLogout else null,
     ) { padding ->
         when (authState) {
-            AuthSessionState.Initializing -> ProfileLoading(
-                message = "Restoring the saved session...",
-                modifier = Modifier.padding(padding),
-            )
+            AuthSessionState.Initializing -> LoadingState(modifier = Modifier.padding(padding))
             is AuthSessionState.Authenticated -> AuthenticatedProfileContent(
                 uiState = uiState,
                 onUpdateDisplayName = onUpdateDisplayName,
@@ -87,57 +86,98 @@ private fun AuthenticatedProfileContent(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .padding(ClosetlySpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Lg),
     ) {
+        Text(
+            text = "Your Closetly profile.",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = "Keep the name shown across your personal space and future Community posts up to date.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
         if (uiState.isLoading) {
-            CircularProgressIndicator()
-            Text("Loading profile...")
+            ClosetlyCard(modifier = Modifier.fillMaxWidth()) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Loading profile...",
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                        .padding(top = ClosetlySpacing.Sm),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         } else if (uiState.profile != null) {
-            OutlinedTextField(
-                value = displayName,
-                onValueChange = { displayName = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Display name") },
-                singleLine = true,
-                enabled = !uiState.isSaving,
-            )
-            OutlinedTextField(
-                value = uiState.profile.email,
-                onValueChange = {},
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Email") },
-                singleLine = true,
-                readOnly = true,
-            )
-            uiState.errorMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
-            }
-            uiState.noticeMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.primary)
-            }
-            Button(
-                onClick = { onUpdateDisplayName(displayName) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isSaving,
-            ) {
-                Text(if (uiState.isSaving) "Saving..." else "Save display name")
-            }
-            OutlinedButton(
-                onClick = onRefresh,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isSaving,
-            ) {
-                Text("Reload profile")
+            ClosetlyCard(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Md)) {
+                    OutlinedTextField(
+                        value = displayName,
+                        onValueChange = { displayName = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Display name") },
+                        singleLine = true,
+                        enabled = !uiState.isSaving,
+                        shape = MaterialTheme.shapes.medium,
+                    )
+                    OutlinedTextField(
+                        value = uiState.profile.email,
+                        onValueChange = {},
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Email") },
+                        singleLine = true,
+                        readOnly = true,
+                        shape = MaterialTheme.shapes.medium,
+                    )
+                    uiState.errorMessage?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    uiState.noticeMessage?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    ClosetlyButton(
+                        text = if (uiState.isSaving) "Saving..." else "Save display name",
+                        onClick = { onUpdateDisplayName(displayName) },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.isSaving,
+                        isLoading = uiState.isSaving,
+                    )
+                    ClosetlyButton(
+                        text = "Reload profile",
+                        onClick = onRefresh,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = ClosetlyButtonStyle.Secondary,
+                        enabled = !uiState.isSaving,
+                    )
+                }
             }
         } else {
-            Text(
-                text = uiState.errorMessage ?: "Profile data is unavailable.",
-                color = MaterialTheme.colorScheme.error,
-            )
-            OutlinedButton(onClick = onRefresh) {
-                Text("Try again")
+            ClosetlyCard(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = uiState.errorMessage ?: "Profile data is unavailable.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                ClosetlyButton(
+                    text = "Try again",
+                    onClick = onRefresh,
+                    modifier = Modifier.fillMaxWidth().padding(top = ClosetlySpacing.Md),
+                    style = ClosetlyButtonStyle.Secondary,
+                )
             }
         }
     }
@@ -150,31 +190,27 @@ private fun SignedOutProfileContent(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier.fillMaxSize().padding(ClosetlySpacing.Lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(
-            text = message,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Button(
-            onClick = onLogin,
-            modifier = Modifier.padding(top = 16.dp),
-        ) {
-            Text("Go to login")
+        ClosetlyCard(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Your profile is private.",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = message,
+                modifier = Modifier.padding(top = ClosetlySpacing.Sm),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ClosetlyButton(
+                text = "Go to login",
+                onClick = onLogin,
+                modifier = Modifier.fillMaxWidth().padding(top = ClosetlySpacing.Lg),
+            )
         }
-    }
-}
-
-@Composable
-private fun ProfileLoading(message: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        CircularProgressIndicator()
-        Text(message, modifier = Modifier.padding(top = 12.dp))
     }
 }
