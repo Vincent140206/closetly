@@ -2,11 +2,23 @@ package vin.pam.closetly.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Sand = Color(0xFFE8DFD1)
-val WarmWhite = Color(0xFFFFFBF6)
-val Charcoal = Color(0xFF262421)
-val Olive = Color(0xFF5F684E)
-val OliveDark = Color(0xFF3D4630)
-val Sage = Color(0xFFC8D2B9)
-val Clay = Color(0xFF8B5E4B)
-val Night = Color(0xFF1D1E1A)
+val GoldenPrimary = Color(0xFFFACC15)
+val GoldenPressed = Color(0xFFEAB308)
+val SoftYellow = Color(0xFFFDE68A)
+val Vanilla = Color(0xFFFFFBEB)
+val OffWhite = Color(0xFFFAFAF7)
+
+val CardWhite = Color(0xFFFFFFFF)
+val Heading = Color(0xFF171717)
+val Body = Color(0xFF262626)
+val Muted = Color(0xFF62625F)
+val Border = Color(0xFFE8E5DC)
+
+internal val DarkBackground = Color(0xFF121210)
+internal val DarkSurface = Color(0xFF1D1D1A)
+internal val DarkSurfaceVariant = Color(0xFF292823)
+internal val DarkOutline = Color(0xFF55534B)
+internal val DarkText = Color(0xFFF5F4ED)
+internal val DarkMuted = Color(0xFFC7C4B9)
+internal val Error = Color(0xFFB3261E)
+internal val ErrorDark = Color(0xFFFFB4AB)

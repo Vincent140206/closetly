@@ -1,8 +1,8 @@
 package vin.pam.closetly.core.ui.components
 
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 
 @Composable
@@ -15,9 +15,15 @@ fun ConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(message) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(confirmLabel) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        shape = MaterialTheme.shapes.large,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text(text = title, style = MaterialTheme.typography.titleLarge) },
+        text = { Text(text = message, style = MaterialTheme.typography.bodyMedium) },
+        confirmButton = {
+            ClosetlyTextButton(text = confirmLabel, onClick = onConfirm)
+        },
+        dismissButton = {
+            ClosetlyTextButton(text = "Cancel", onClick = onDismiss)
+        },
     )
 }

@@ -6,30 +6,50 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Sage,
-    onPrimary = Night,
-    primaryContainer = Olive,
-    onPrimaryContainer = WarmWhite,
-    secondary = Sand,
-    tertiary = Clay,
-    background = Night,
-    onBackground = WarmWhite,
-    surface = Night,
-    onSurface = WarmWhite,
+private val LightColorScheme = lightColorScheme(
+    primary = GoldenPrimary,
+    onPrimary = Heading,
+    primaryContainer = SoftYellow,
+    onPrimaryContainer = Heading,
+    secondary = Body,
+    onSecondary = CardWhite,
+    secondaryContainer = Vanilla,
+    onSecondaryContainer = Body,
+    tertiary = GoldenPressed,
+    onTertiary = Heading,
+    background = OffWhite,
+    onBackground = Heading,
+    surface = CardWhite,
+    onSurface = Body,
+    surfaceVariant = Vanilla,
+    onSurfaceVariant = Muted,
+    outline = Border,
+    outlineVariant = Border,
+    error = Error,
+    onError = CardWhite,
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = OliveDark,
-    onPrimary = WarmWhite,
-    primaryContainer = Sage,
-    secondary = Olive,
-    secondaryContainer = Sand,
-    tertiary = Clay,
-    background = WarmWhite,
-    surface = WarmWhite,
-    onBackground = Charcoal,
-    onSurface = Charcoal,
+private val DarkColorScheme = darkColorScheme(
+    primary = GoldenPrimary,
+    onPrimary = Heading,
+    primaryContainer = GoldenPressed,
+    onPrimaryContainer = Heading,
+    secondary = DarkText,
+    onSecondary = DarkBackground,
+    secondaryContainer = DarkSurfaceVariant,
+    onSecondaryContainer = DarkText,
+    tertiary = SoftYellow,
+    onTertiary = Heading,
+    background = DarkBackground,
+    onBackground = DarkText,
+    surface = DarkSurface,
+    onSurface = DarkText,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = DarkMuted,
+    outline = DarkOutline,
+    outlineVariant = DarkOutline,
+    error = ErrorDark,
+    onError = Heading,
 )
 
 @Composable
@@ -37,11 +57,10 @@ fun ClosetlyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         typography = Typography,
+        shapes = ClosetlyShapes,
         content = content,
     )
 }
