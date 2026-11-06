@@ -1,6 +1,7 @@
 package vin.pam.closetly
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,5 +23,22 @@ class AppShellNavigationTest {
             composeRule.onNodeWithText("Back").performClick()
             composeRule.onNodeWithText(module.title).performScrollTo().assertIsDisplayed()
         }
+    }
+
+    @Test
+    fun primaryBottomNavigation_updatesSelection_withoutDuplicatingDestinations() {
+        composeRule.onNodeWithText("Beranda").assertIsSelected()
+
+        composeRule.onNodeWithText("Lemari").performClick()
+        composeRule.onNodeWithText("Digital Wardrobe").assertIsDisplayed()
+        composeRule.onNodeWithText("Lemari").assertIsSelected()
+
+        composeRule.onNodeWithText("Komunitas").performClick()
+        composeRule.onNodeWithText("Community").assertIsDisplayed()
+        composeRule.onNodeWithText("Komunitas").assertIsSelected()
+
+        composeRule.onNodeWithText("Beranda").performClick()
+        composeRule.onNodeWithText("Your wardrobe,\nyour story.").assertIsDisplayed()
+        composeRule.onNodeWithText("Beranda").assertIsSelected()
     }
 }
