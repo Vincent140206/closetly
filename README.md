@@ -1,180 +1,98 @@
 # Closetly
 
-Closetly adalah aplikasi Android untuk mengelola koleksi pakaian, membuat kombinasi outfit, merencanakan outfit, berbagi inspirasi melalui Community, mencatat wishlist, dan melihat riwayat pemakaian. Proyek ini dibuat sebagai tugas akhir kelompok untuk mata kuliah Pemrograman Aplikasi Mobile.
+Closetly adalah aplikasi Android untuk membantu pengguna mengatur pakaian dan aktivitas berpakaian dalam satu tempat. Pengguna nantinya dapat menyimpan koleksi pakaian, membuat kombinasi outfit, merencanakan outfit untuk tanggal tertentu, mencatat riwayat pemakaian, menyimpan wishlist fashion, dan berbagi inspirasi melalui Community.
+
+Proyek ini dikembangkan sebagai tugas akhir kelompok mata kuliah Pemrograman Aplikasi Mobile. Repository saat ini berada pada tahap **application foundation dan feature standardization**: fondasi aplikasi, Auth, dan Profile sudah tersedia, sedangkan enam fitur utama disiapkan untuk dikerjakan secara paralel oleh anggota tim.
+
+## Gambaran Aplikasi
+
+Closetly memiliki enam fitur utama:
+
+| Fitur | Fungsi |
+|---|---|
+| Digital Wardrobe | Menyimpan dan mengelola koleksi pakaian pribadi. |
+| Mix & Match Outfit | Membuat kombinasi outfit dari item wardrobe. |
+| Outfit Planner | Menjadwalkan outfit untuk tanggal dan aktivitas tertentu. |
+| Community | Menampilkan feed publik dan membagikan inspirasi outfit. |
+| Fashion Wishlist | Mencatat item fashion yang ingin dibeli. |
+| Wear History | Melihat outfit yang direncanakan maupun benar-benar sudah dipakai. |
+
+Alur Planner dan Wear History saling terhubung. Saat sebuah plan dibuat, sistem nantinya membuat entry Wear History berstatus pending. Entry tersebut baru menjadi worn setelah pengguna menekan **Mark as Worn** dan memilih tanggal pemakaian aktual; tanggal rencana yang lewat tidak mengubah status secara otomatis.
+
+Community menggunakan feed publik, tetapi hanya pengguna terautentikasi yang dapat membuat post. Author dapat mengubah atau menghapus post miliknya sendiri. Asset Community akan disimpan terpisah dari gambar private Wardrobe dan Outfit.
+
+## Kondisi Proyek Saat Ini
+
+| Bagian | Status | Keterangan |
+|---|---|---|
+| Android application shell | Tersedia | Compose theme, shared components, Home, dan centralized navigation. |
+| Authentication | Tersedia | Register, login, session restoration, dan logout melalui Supabase Auth. |
+| Profile | Tersedia | Membaca dan memperbarui basic profile pengguna terautentikasi. |
+| Enam fitur utama | Belum diimplementasikan | Route masih membuka placeholder dan package hanya berisi struktur folder. |
+| Database feature CRUD | Belum diimplementasikan | Logical schema sudah disepakati, tetapi schema aktif masih harus diverifikasi. |
+| Image Storage | Belum diimplementasikan | SDK tersedia; bucket dan policy final masih harus diverifikasi. |
+
+Home sengaja dapat dibuka tanpa login selama development. Profile membutuhkan sesi pengguna, sedangkan screen bertuliskan **Not implemented yet** merupakan placeholder yang disengaja.
+
+Tidak ada full feature implementation di dalam folder enam fitur. Folder tersebut hanya menjadi batas ownership dan standar awal agar setiap anggota dapat mengembangkan fiturnya tanpa mengubah package anggota lain.
+
+## Arsitektur Singkat
+
+Setiap fitur mengikuti alur MVVM sederhana:
+
+```text
+Compose Screen -> ViewModel -> Feature Repository -> Shared Supabase Client
+```
+
+- Compose merender state dan mengirim aksi melalui callback.
+- ViewModel mengelola UI state dan menjalankan use case.
+- Repository dibuat khusus sesuai kebutuhan fitur; proyek tidak memakai generic base repository.
+- Supabase client dibuat satu kali melalui application container dan digunakan bersama.
+- DTO, PostgREST, Storage, serta mapping data berada di data layer.
+- Row Level Security Supabase tetap menjadi batas keamanan utama.
+
+Target logical schema menggunakan delapan tabel:
+
+```text
+profiles
+clothing_items
+outfits
+outfit_items
+outfit_plans
+wear_history
+community_posts
+fashion_wishlist
+```
+
+Schema tersebut adalah kontrak pengembangan, bukan bukti bahwa migration sudah diterapkan. Existing Supabase schema harus diperiksa sebelum membuat migration, dan data lama tidak boleh dihapus otomatis.
 
 ## Tech Stack
 
 | Teknologi | Kegunaan |
 |---|---|
-| Kotlin | Bahasa pemrograman utama aplikasi |
-| Jetpack Compose | Membuat tampilan Android secara deklaratif |
-| Material 3 | Theme dan komponen UI dasar |
-| Navigation Compose | Mengatur perpindahan screen dengan type-safe route |
-| ViewModel dan StateFlow | State management Auth/Profile dan standar fitur |
-| Supabase | Auth/Profile aktif; SDK PostgREST dan Storage tersedia |
-| Gradle Kotlin DSL | Konfigurasi build dan dependency |
+| Kotlin | Bahasa pemrograman utama. |
+| Jetpack Compose dan Material 3 | Declarative UI dan design system. |
+| Navigation Compose | Type-safe navigation antarscreen. |
+| ViewModel dan StateFlow | State management dan lifecycle-aware UI. |
+| Kotlin Serialization | Route dan data serialization. |
+| Supabase Auth, PostgREST, dan Storage | Authentication serta backend aplikasi. |
+| Coil | Memuat gambar pada Compose. |
+| Gradle Kotlin DSL | Build configuration dan dependency management. |
 
-Auth dan Profile sudah memakai satu shared Supabase client. Enam fitur individual belum memiliki repository/CRUD dan foldernya sengaja hanya berupa struktur kosong untuk diisi pemilik fitur.
+Konfigurasi Android saat ini menggunakan min SDK 26, target SDK 36, dan compile SDK 36.1. Gradle membutuhkan JDK 17 atau versi yang kompatibel dengan Android Gradle Plugin yang digunakan.
 
-## Status Proyek
+## Tim dan Ownership
 
-Branch `develop` saat ini berisi shared application foundation, Auth/Profile, dan struktur folder standar enam fitur.
+| Anggota | Fitur | Package | Branch |
+|---|---|---|---|
+| Vincent | Digital Wardrobe | `feature/wardrobe` | `feature/digital-wardrobe` |
+| Janice | Mix & Match Outfit | `feature/outfit` | `feature/mix-and-match` |
+| Vara | Outfit Planner | `feature/planner` | `feature/outfit-planner` |
+| Sela | Community | `feature/inspiration` | `feature/inspiration-board` |
+| Gres | Fashion Wishlist | `feature/wishlist` | `feature/fashion-wishlist` |
+| Aurel | Wear History | `feature/wearhistory` | `feature/wear-history` |
 
-Yang sudah tersedia:
-
-- Inisialisasi aplikasi Android dan Compose
-- Shared theme dan reusable components
-- Navigation yang terpusat
-- Home screen dengan enam pilihan fitur
-- Placeholder untuk setiap fitur
-- Email/password Auth, session restoration, logout, dan basic Profile
-- Fondasi konfigurasi Supabase, PostgREST, dan Storage
-- Folder `data/dto`, `data/repository`, `model`, dan `ui/components` untuk tiap fitur
-- Kontrak final delapan tabel dan panduan pengembangan fitur
-
-Yang belum diimplementasikan:
-
-- Enam fitur utama dan root screen masing-masing
-- ViewModel dan repository khusus fitur
-- Supabase CRUD
-- Image upload dan Storage integration
-
-Screen bertuliskan **Not implemented yet** adalah placeholder yang disengaja, bukan error aplikasi. Struktur folder bukan bukti bahwa fitur sudah diimplementasikan.
-
-## Tim dan Pembagian Fitur
-
-| Member | Feature | Branch |
-|---|---|---|
-| Vincent | Digital Wardrobe | `feature/digital-wardrobe` |
-| Janice | Mix & Match Outfit | `feature/mix-and-match` |
-| Vara | Outfit Planner | `feature/outfit-planner` |
-| Sela | Community | `feature/inspiration-board` |
-| Gres | Fashion Wishlist | `feature/fashion-wishlist` |
-| Aurel | Wear History | `feature/wear-history` |
-
-Branch `feature/auth` digunakan untuk shared authentication. Branch `feature/profile` digunakan untuk shared profile functionality.
-
-## Getting Started
-
-### Prasyarat
-
-Siapkan:
-
-- Android Studio
-- Git
-- JDK 17 atau lebih baru; JDK bawaan Android Studio dapat digunakan
-- Android SDK 36
-- Android emulator atau perangkat Android fisik
-
-Proyek menggunakan Gradle 9.4.1, compileSdk 36.1, targetSdk 36, dan minSdk 26. Source compatibility aplikasi diatur ke Java 11.
-
-### Clone repository
-
-Buka Windows CMD, lalu jalankan setiap command secara terpisah:
-
-```cmd
-git clone https://github.com/Vincent140206/closetly.git
-```
-
-```cmd
-cd closetly
-```
-
-### Buka di Android Studio
-
-1. Buka Android Studio.
-2. Pilih **Open**.
-3. Pilih folder `closetly`.
-4. Tunggu Gradle Sync selesai.
-5. Pilih emulator atau perangkat fisik.
-6. Jalankan konfigurasi `app` dengan tombol **Run**.
-
-Untuk memeriksa debug build dari Windows CMD:
-
-```cmd
-gradlew.bat :app:assembleDebug
-```
-
-Boilerplate terakhir telah diverifikasi dengan `:app:assembleDebug`, `:app:testDebugUnitTest`, `:app:assembleDebugAndroidTest`, dan `:app:lintDebug`.
-
-## Git Branch Workflow
-
-- `main`: versi aplikasi yang stabil.
-- `develop`: branch integrasi pekerjaan seluruh tim.
-- `feature/*`: branch pengembangan masing-masing fitur.
-
-Semua feature branch pada tabel pembagian tim sudah tersedia. Jangan membuat branch duplikat.
-
-Contoh memulai pekerjaan Digital Wardrobe:
-
-```cmd
-git fetch origin
-```
-
-```cmd
-git switch feature/digital-wardrobe
-```
-
-```cmd
-git merge origin/develop
-```
-
-Anggota lain harus mengganti `feature/digital-wardrobe` dengan branch yang sesuai pada tabel pembagian fitur.
-
-Jika branch belum tersedia secara lokal setelah clone, track branch remote yang sudah ada:
-
-```cmd
-git fetch origin
-```
-
-```cmd
-git switch --track origin/feature/digital-wardrobe
-```
-
-Command `--track` hanya diperlukan jika branch tersebut belum ada secara lokal.
-
-## Cara Mengembangkan Fitur
-
-1. Switch ke branch fitur yang sudah ditentukan.
-2. Merge perubahan terbaru dari `origin/develop`.
-3. Baca [`docs/FEATURE_DEVELOPMENT_GUIDE.md`](docs/FEATURE_DEVELOPMENT_GUIDE.md) dan [`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md).
-4. Buka package fitur milikmu di `app/src/main/java/vin/pam/closetly/feature/`.
-5. Implementasikan model, repository, ViewModel, UI state, screen, dan komponen yang memang dibutuhkan fitur.
-6. Gunakan shared theme dan components jika sesuai.
-7. Test perubahan dan pastikan aplikasi dapat di-build.
-8. Commit dan push pekerjaanmu.
-9. Buat Pull Request ke `develop`.
-
-Contoh commit dan push untuk Digital Wardrobe:
-
-```cmd
-git add .
-```
-
-```cmd
-git commit -m "feat(wardrobe): implement wardrobe screen"
-```
-
-```cmd
-git push origin feature/digital-wardrobe
-```
-
-Pesan commit harus menjelaskan perubahan yang dibuat. Hindari mengubah package fitur milik anggota lain tanpa koordinasi.
-
-## Aturan Pull Request
-
-- Semua Pull Request fitur harus menargetkan `develop`.
-- Jangan merge feature branch langsung ke `main`.
-- `main` hanya diperbarui dari `develop` setelah versi terintegrasi selesai diuji.
-- Pastikan proyek dapat di-build sebelum membuat Pull Request.
-- Selesaikan merge conflict sebelum perubahan digabungkan.
-- Koordinasikan perubahan pada shared navigation, Gradle, konfigurasi, dan shared components.
-
-Contoh arah Pull Request:
-
-```text
-feature/digital-wardrobe -> develop
-```
+Community tetap memakai package `feature/inspiration` dan branch `feature/inspiration-board` untuk kompatibilitas. Branch `feature/auth` dan `feature/profile` digunakan untuk shared Auth/Profile.
 
 ## Struktur Proyek
 
@@ -184,125 +102,138 @@ app/src/main/java/vin/pam/closetly/
 |-- ClosetlyApp.kt
 |-- ClosetlyApplication.kt
 |-- core/
-|   |-- config/
-|   |-- data/
-|   |-- navigation/
+|   |-- config/          # BuildConfig dan konfigurasi aplikasi
+|   |-- data/            # Shared data provider
+|   |-- navigation/      # Route, module metadata, dan NavHost
 |   `-- ui/
-|       |-- components/
-|       `-- shell/
-|-- di/
+|       |-- components/  # Reusable app-level UI
+|       `-- shell/       # Development Home dan feature placeholder
+|-- di/                  # Application dependency container
 |-- feature/
-|   |-- auth/
-|   |-- profile/
+|   |-- auth/            # Shared authentication implementation
+|   |-- profile/         # Shared profile implementation
 |   |-- wardrobe/
 |   |-- outfit/
 |   |-- planner/
-|   |-- inspiration/     # Community; nama dipertahankan untuk kompatibilitas
+|   |-- inspiration/     # Community; nama lama dipertahankan
 |   |-- wishlist/
 |   `-- wearhistory/
-`-- ui/
-    `-- theme/
+`-- ui/theme/            # Material 3 theme
 ```
 
-Kegunaan folder penting:
-
-- `core/config`: konfigurasi aplikasi, termasuk nilai Supabase dari BuildConfig.
-- `core/data`: penyedia shared data service seperti `SupabaseProvider`.
-- `core/navigation`: daftar route, module metadata, dan `AppNavHost`.
-- `core/ui/components`: komponen UI yang dapat digunakan oleh beberapa fitur.
-- `core/ui/shell`: Home dan module placeholder untuk development shell.
-- `di`: application-level dependency container.
-- `feature/auth` dan `feature/profile`: shared authentication dan profile.
-- Enam package fitur: area kerja masing-masing anggota. Masing-masing sudah memiliki folder `data/dto`, `data/repository`, `model`, dan `ui/components` yang masih kosong.
-- `ui/theme`: warna, typography, dan Material 3 theme.
-
-Di dalam package fitur milikmu, struktur folder standarnya adalah:
+Masing-masing dari enam package fitur hanya memiliki struktur kosong berikut:
 
 ```text
-feature/wardrobe/
+feature/<feature>/
 |-- data/
-|   |-- dto/
-|   `-- repository/
-|-- model/
+|   |-- dto/.gitkeep
+|   `-- repository/.gitkeep
+|-- model/.gitkeep
 `-- ui/
-    `-- components/
+    `-- components/.gitkeep
 ```
 
-Source file belum dibuat. Pemilik fitur menambahkan model, repository, `<Feature>ViewModel`, `<Feature>UiState`, dan `<Feature>Screen` ketika mulai implementasi.
+Pemilik fitur membuat model, repository, ViewModel, UI state, screen, dan test ketika implementasi dimulai. Hapus `.gitkeep` hanya dari folder yang sudah memiliki source file.
+
+## Menjalankan Proyek
+
+### Prasyarat
+
+- Android Studio
+- Git
+- JDK 17 atau lebih baru
+- Android SDK 36 dengan platform/API yang dibutuhkan proyek
+- Emulator Android atau perangkat fisik
+
+### Clone dan buka proyek
+
+```bash
+git clone https://github.com/Vincent140206/closetly.git
+cd closetly
+```
+
+Buka folder proyek melalui Android Studio, tunggu Gradle Sync selesai, pilih device, kemudian jalankan konfigurasi `app`.
+
+Debug build dan unit test dapat dijalankan dengan:
+
+```cmd
+gradlew.bat :app:assembleDebug :app:testDebugUnitTest
+```
+
+Untuk lint:
+
+```cmd
+gradlew.bat :app:lintDebug
+```
+
+Pada macOS/Linux, gunakan `./gradlew` sebagai pengganti `gradlew.bat`.
 
 ## Konfigurasi Supabase
 
-Supabase diperlukan untuk Auth/Profile dan kelak untuk data fitur. Aplikasi tetap menyediakan recoverable state jika credential lokal belum ada.
-
-Saat konfigurasi sudah dibutuhkan, buat file `secrets.properties` di root repository:
+Buat `secrets.properties` di root proyek:
 
 ```properties
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-publishable-or-anon-key
 ```
 
-Perhatikan aturan berikut:
+Nilai juga dapat diberikan melalui Gradle property atau environment variable dengan nama yang sama. Jika credential tidak tersedia, aplikasi tetap dapat membuka development Home dan menampilkan status bahwa layanan Auth/Profile belum tersedia.
 
-- Jangan commit `secrets.properties`.
-- Jangan membagikan service-role key atau secret key.
-- Gunakan hanya publishable/anon key pada aplikasi Android.
-- Aplikasi saat ini tetap dapat berjalan tanpa credential Supabase.
-- Auth/Profile sudah diimplementasikan; CRUD enam fitur dan image Storage belum.
+Aturan keamanan:
 
-## Masalah Umum
+- Jangan commit `secrets.properties`, `local.properties`, `.env`, token, atau keystore.
+- Aplikasi Android hanya boleh memakai publishable/anon key.
+- Jangan pernah memasukkan secret/service-role key ke aplikasi atau repository.
+- Jangan mengandalkan filter di client sebagai pengganti Row Level Security.
 
-### Gradle Sync gagal
+## Workflow Pengembangan
 
-Pastikan koneksi internet aktif, lalu pilih **Sync Project with Gradle Files**. Periksa juga apakah Android SDK 36 sudah terpasang melalui SDK Manager.
+- `main`: versi terintegrasi yang sudah diterima.
+- `develop`: branch integrasi pekerjaan tim.
+- `feature/*`: branch kerja tiap fitur.
 
-### Versi Android SDK atau Java tidak cocok
+Mulai pekerjaan dari branch yang sudah ditentukan:
 
-Atur **Gradle JDK** di Android Studio ke JDK 17 atau lebih baru. Gunakan JDK bawaan Android Studio jika ragu. Pastikan compile SDK yang diperlukan sudah terpasang.
-
-### Feature branch tidak ditemukan secara lokal
-
-Jalankan:
-
-```cmd
+```bash
 git fetch origin
+git switch feature/nama-fitur
+git merge origin/develop
 ```
 
-```cmd
-git switch --track origin/nama-feature-branch
+Setelah implementasi:
+
+```bash
+git add <file-yang-diubah>
+git commit -m "feat(scope): jelaskan perubahan"
+git push origin feature/nama-fitur
 ```
 
-Ganti `nama-feature-branch` dengan branch milikmu.
+Buat Pull Request dari `feature/*` menuju `develop`. Perubahan pada navigation, shared UI, Gradle, Auth/Profile, database contract, atau application container harus dikoordinasikan karena memengaruhi beberapa anggota. `main` diperbarui dari `develop` setelah hasil integrasi diuji.
 
-### Terjadi merge conflict
+Sebelum Pull Request:
 
-Buka file yang konflik, pilih perubahan yang benar bersama pemilik file, lalu jalankan:
+- Pastikan scope hanya mencakup fitur yang dimiliki.
+- Verifikasi loading, empty, error, dan success state yang relevan.
+- Tambahkan unit test untuk logic ViewModel/repository.
+- Jalankan debug build, unit test, dan lint.
+- Jangan menyertakan credential atau file konfigurasi lokal.
 
-```cmd
-git add .
-```
+## Dokumentasi Teknis
 
-```cmd
-git commit
-```
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): batas layer, package, dan keputusan arsitektur.
+- [`docs/FEATURE_DEVELOPMENT_GUIDE.md`](docs/FEATURE_DEVELOPMENT_GUIDE.md): standar implementasi fitur.
+- [`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md): scope dan aturan tiap fitur.
+- [`docs/DATABASE_CONTRACT.md`](docs/DATABASE_CONTRACT.md): delapan tabel, RLS, Storage, dan Planner/Wear History lifecycle.
+- [`docs/REPOSITORY_CONTRACTS.md`](docs/REPOSITORY_CONTRACTS.md): tanggung jawab repository per fitur.
+- [`docs/NAVIGATION_CONTRACT.md`](docs/NAVIGATION_CONTRACT.md): aturan route dan integrasi screen.
+- [`docs/UI_GUIDELINES.md`](docs/UI_GUIDELINES.md): panduan Compose dan shared components.
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md): token visual, typography, spacing, button, card, dan bottom navigation.
+- [`docs/TEAM_ONBOARDING.md`](docs/TEAM_ONBOARDING.md): langkah singkat untuk anggota tim.
 
-Jangan menghapus perubahan anggota lain tanpa koordinasi.
+## Fokus Pengembangan Berikutnya
 
-### Fitur hanya menampilkan "Not implemented yet"
-
-Itu adalah kondisi yang benar untuk standardisasi saat ini. Implementasi fitur harus dibuat pada branch masing-masing.
-
-### Supabase belum dikonfigurasi
-
-Tidak masalah untuk tahap UI awal. Aplikasi dirancang agar dapat berjalan tanpa `secrets.properties`.
-
-## Aturan Penting Tim
-
-- Kerjakan fitur hanya pada branch yang sudah ditentukan.
-- Selalu sinkronkan branch dengan `develop`.
-- Jangan push langsung ke `main`.
-- Jangan mengubah fitur anggota lain tanpa koordinasi.
-- Koordinasikan perubahan pada shared files.
-- Jangan commit credential, `.env`, `local.properties`, atau `secrets.properties`.
-- Test dan build proyek sebelum membuat Pull Request.
-
-Dokumentasi teknis tambahan tersedia di folder [`docs/`](docs/), terutama [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), panduan fitur, kontrak repository/navigation, dan [`docs/DATABASE_CONTRACT.md`](docs/DATABASE_CONTRACT.md). Jaga branch tetap rapi dan saling koordinasi agar pengembangan Closetly berjalan lancar.
+1. Verifikasi schema, RPC, RLS, dan Storage bucket pada project Supabase aktif.
+2. Implementasikan enam fitur pada branch pemilik masing-masing.
+3. Hubungkan root screen fitur ke centralized navigation setelah screen siap.
+4. Tambahkan migration additive dan aman setelah existing database diperiksa.
+5. Jalankan integration test dengan beberapa akun untuk memverifikasi ownership dan public Community feed.
