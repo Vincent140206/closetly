@@ -1,7 +1,7 @@
 package vin.pam.closetly.core.ui.splash
 
 import android.graphics.Paint
-import android.graphics.Rect
+import android.graphics.Rect as AndroidRect
 import android.graphics.Typeface
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -14,12 +14,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.PlatformTextStyle
@@ -29,24 +33,45 @@ import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import vin.pam.closetly.R
 import kotlinx.coroutines.delay
 
 @Composable
 internal fun ClosetlyLogoAnimation(
     modifier: Modifier = Modifier,
     letterModifier: Modifier = Modifier,
+    onAnimationFinished: () -> Unit = {},
 ) {
-    val rotation = remember { Animatable(0f) }
+    val roll = remember { Animatable(0f) }
     val reveal = remember { Animatable(0f) }
+    val iconReveal = remember { Animatable(0f) }
+    val iconPainter = painterResource(R.drawable.ic_closetly_splash)
+    val currentOnAnimationFinished by rememberUpdatedState(onAnimationFinished)
 
-    // One sequence per presentation; ordinary recompositions do not restart it.
     LaunchedEffect(Unit) {
-        rotation.animateTo(360f, tween(550, easing = FastOutSlowInEasing))
-        reveal.animateTo(1f, tween(700, easing = FastOutSlowInEasing))
+        roll.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 550, easing = FastOutSlowInEasing),
+        )
+        reveal.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing),
+        )
+        iconReveal.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+        )
         delay(300)
+        currentOnAnimationFinished()
     }
 
-    val style = MaterialTheme.typography.displaySmall.copy(
+    val displayStyle = MaterialTheme.typography.displaySmall
+    val style = displayStyle.copy(
+        fontSize = displayStyle.fontSize * 1.5f,
+        lineHeight = displayStyle.lineHeight * 1.5f,
+        letterSpacing = displayStyle.letterSpacing * 1.5f,
         color = MaterialTheme.colorScheme.onPrimary,
         platformStyle = PlatformTextStyle(includeFontPadding = false),
         lineHeightStyle = LineHeightStyle(
@@ -54,67 +79,95 @@ internal fun ClosetlyLogoAnimation(
             trim = LineHeightStyle.Trim.Both,
         ),
     )
+    val wordmark = "Closetly"
     val measurer = rememberTextMeasurer()
-    val text = measurer.measure(text = "Closetly", style = style, softWrap = false)
+    val text = measurer.measure(
+        text = wordmark,
+        style = style,
+        softWrap = false,
+        maxLines = 1,
+        overflow = TextOverflow.Visible,
+    )
     val split = text.getHorizontalPosition(1, usePrimaryDirection = true)
     val density = LocalDensity.current
-    val typeface by LocalFontFamilyResolver.current.resolve(
+    val resolvedTypeface by LocalFontFamilyResolver.current.resolve(
         fontFamily = style.fontFamily,
         fontWeight = style.fontWeight ?: FontWeight.Normal,
         fontStyle = style.fontStyle ?: FontStyle.Normal,
         fontSynthesis = style.fontSynthesis ?: FontSynthesis.All,
     )
-    // Ink bounds exclude font ascent/descent padding, keeping the rotation pivot
-    // at the visible C's center. Compose still shapes and draws the actual text.
-    val (letterCenter, wordCenter) = remember(text, typeface, density) {
+
+    val (letterBounds, wordCenterX) = remember(text, resolvedTypeface, density) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.typeface = typeface as Typeface
+            typeface = resolvedTypeface as Typeface
             textSize = with(density) { style.fontSize.toPx() }
         }
-        val bounds = Rect()
+        val bounds = AndroidRect()
         paint.getTextBounds("C", 0, 1, bounds)
         val baseline = text.getLineBaseline(0)
-        val letterCenter = Offset(bounds.exactCenterX(), baseline + bounds.exactCenterY())
-        val wordLeft = bounds.left.toFloat()
-        paint.getTextBounds("Closetly", 0, 7, bounds)
-        val wordCenterY = baseline + bounds.exactCenterY()
+        val letterBounds = Rect(
+            left = bounds.left.toFloat(),
+            top = baseline + bounds.top,
+            right = bounds.right.toFloat(),
+            bottom = baseline + bounds.bottom,
+        )
+
         paint.getTextBounds("y", 0, 1, bounds)
-        val wordRight = text.getHorizontalPosition(6, true) + bounds.right
-        letterCenter to Offset((wordLeft + wordRight) / 2f, wordCenterY)
+        val wordRight = text.getHorizontalPosition(wordmark.lastIndex, true) + bounds.right
+        val wordCenterX = (letterBounds.left + wordRight) / 2f
+
+        letterBounds to wordCenterX
     }
+    val letterCenter = letterBounds.center
+    val iconSize = letterBounds.height * 1.15f
+    val iconSpace = iconSize + with(density) { 8.dp.toPx() }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .semantics { contentDescription = "Closetly" }
+            .semantics { contentDescription = wordmark }
             .graphicsLayer {
-                // Fit the entire word at large font scales or on narrow windows.
-                // Keep this scale constant throughout the sequence.
-                val fit = minOf(1f, size.width / text.size.width)
+                val fit = minOf(1f, size.width / (text.size.width + iconSpace))
                 scaleX = fit
                 scaleY = fit
-                translationX = (letterCenter.x - wordCenter.x) * reveal.value * fit
-                translationY = (letterCenter.y - wordCenter.y) * reveal.value * fit
+                val rollShift = (letterCenter.x - wordCenterX) * roll.value
+                val iconShift = iconSpace / 2f * iconReveal.value
+                translationX = (rollShift + iconShift) * fit
             },
     ) {
         Canvas(
             modifier = letterModifier
                 .fillMaxSize()
-                .graphicsLayer { rotationZ = rotation.value },
+                .graphicsLayer { rotationZ = -360f * roll.value },
         ) {
             val origin = center - letterCenter
-            // The C is drawn once, from the same shaped text for every frame.
             clipRect(left = origin.x, right = origin.x + split) {
                 drawText(textLayoutResult = text, topLeft = origin)
             }
         }
+
         Canvas(modifier = Modifier.fillMaxSize()) {
             val origin = center - letterCenter
-            val left = origin.x + split
-            clipRect(left = left, right = left + (text.size.width - split) * reveal.value) {
-                drawText(textLayoutResult = text, topLeft = origin)
+            val progress = reveal.value
+            if (progress > 0f) {
+                val left = origin.x + split
+                val right = left + (text.size.width - split) * progress
+                clipRect(left = left, right = right) {
+                    drawText(textLayoutResult = text, topLeft = origin)
+                }
+            }
+
+            val iconAlpha = iconReveal.value
+            if (iconAlpha > 0f) {
+                translate(
+                    left = origin.x + letterBounds.left - iconSpace,
+                    top = center.y - iconSize / 2f,
+                ) {
+                    with(iconPainter) {
+                        draw(size = Size(iconSize, iconSize), alpha = iconAlpha)
+                    }
+                }
             }
         }
     }
 }
-

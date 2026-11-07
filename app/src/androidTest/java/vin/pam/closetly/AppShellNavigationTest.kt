@@ -3,16 +3,25 @@ package vin.pam.closetly
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import org.junit.Rule
+import org.junit.Before
 import org.junit.Test
 import vin.pam.closetly.core.navigation.AppModule
 
 class AppShellNavigationTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
+
+    @Before
+    fun waitForSplashToFinish() {
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Beranda").fetchSemanticsNodes().isNotEmpty()
+        }
+    }
 
     @Test
     fun everyModule_opensSharedPlaceholder_andNavigatesBackHome() {
