@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">Closetly</string>
+    <string name="onboarding_heading">Lemari rapi.\nGaya tiap hari.</string>
+    <string name="onboarding_description">Simpan pakaian, susun outfit, dan catat setiap gaya favoritmu dalam satu tempat praktis dan estetis.</string>
+    <string name="onboarding_get_started">Mulai Sekarang</string>
+    <string name="onboarding_login">Sudah punya akun? Masuk</string>
+    <string name="onboarding_combinations_value">100+</string>
+    <string name="onboarding_combinations_label">Kombinasi</string>
+    <string name="onboarding_confusion_value">0</string>
+    <string name="onboarding_confusion_label">Bingung Outfit</string>
+    <string name="onboarding_log_value">Daily</string>
+    <string name="onboarding_log_label">OOTD Log</string>
 </resources>

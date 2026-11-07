@@ -7,7 +7,7 @@ Navigation tetap terpusat di `core/navigation/AppNavHost.kt`. Route adalah type-
 ## Route saat ini
 
 - Setelah splash selesai dan sesi dipulihkan, circular reveal membuka `HomeRoute` untuk sesi authenticated atau `OnboardingRoute` bila belum login. Kegagalan pemulihan/configuration unavailable juga menuju Onboarding.
-- `OnboardingRoute` membuka placeholder kosong di `feature/onboarding/OnboardingScreen.kt`, tanpa bottom bar, tombol, atau alur onboarding tambahan. Kontennya akan dikembangkan di branch terpisah.
+- `OnboardingRoute` membuka welcome screen di `feature/onboarding/OnboardingScreen.kt`, tanpa bottom bar. Tombol **Mulai Sekarang** membuka `RegisterRoute`, sedangkan **Sudah punya akun? Masuk** membuka `LoginRoute`. Hero/statistik dan kelompok tombol berada di `feature/onboarding/ui/components`; screen menerima callback dari graph.
 - `ClosetlyApp` memakai satu `AuthViewModel` yang sama dengan `AppNavHost`. Destination awal dipilih sekali; perubahan sesi berikutnya ditangani navigation effect, tanpa mengganti graph saat login/logout.
 - `HomeRoute` tetap menjadi default saat `AppNavHost` digunakan langsung untuk development atau tes app shell. Login berhasil, logout, dan sesi yang menjadi `NotAuthenticated` membersihkan back stack sebelumnya; pengguna yang keluar dari sesi kembali ke Onboarding. Login dan Register tetap dapat dibuka sebagai bagian flow Auth.
 - `LoginRoute`, `RegisterRoute`, dan `ProfileRoute` menjalankan flow Auth/Profile yang sudah ada.
