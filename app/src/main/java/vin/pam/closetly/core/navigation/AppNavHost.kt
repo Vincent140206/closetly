@@ -27,6 +27,7 @@ import vin.pam.closetly.feature.auth.LoginScreen
 import vin.pam.closetly.feature.auth.RegisterScreen
 import vin.pam.closetly.feature.profile.ProfileScreen
 import vin.pam.closetly.feature.profile.ProfileViewModel
+import vin.pam.closetly.feature.onboarding.OnboardingScreen
 
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
@@ -46,10 +47,11 @@ private val PrimaryBottomBarItems = listOf(
 fun AppNavHost(
     navController: NavHostController,
     container: AppContainer,
-) {
-    val authViewModel: AuthViewModel = viewModel(
+    authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModel.factory(container.authRepository),
-    )
+    ),
+    startDestination: Any = HomeRoute,
+) {
     val profileViewModel: ProfileViewModel = viewModel(
         factory = ProfileViewModel.factory(container.profileRepository),
     )
@@ -68,20 +70,25 @@ fun AppNavHost(
     LaunchedEffect(authUiState.sessionState, currentRoute) {
         when (authUiState.sessionState) {
             is AuthSessionState.Authenticated -> {
-                val isAuthenticationScreen =
-                    currentRoute == LoginRoute.serializer().descriptor.serialName ||
+                val isEntryScreen =
+                    currentRoute == OnboardingRoute.serializer().descriptor.serialName ||
+                        currentRoute == LoginRoute.serializer().descriptor.serialName ||
                         currentRoute == RegisterRoute.serializer().descriptor.serialName
-                if (isAuthenticationScreen) {
+                if (isEntryScreen) {
                     navController.navigate(HomeRoute) {
-                        popUpTo<HomeRoute> { inclusive = false }
+                        popUpTo(navController.graph.id) { inclusive = false }
                         launchSingleTop = true
                     }
                 }
             }
             AuthSessionState.NotAuthenticated -> {
-                if (currentRoute == ProfileRoute.serializer().descriptor.serialName) {
-                    navController.navigate(LoginRoute) {
-                        popUpTo<ProfileRoute> { inclusive = true }
+                val isEntryScreen =
+                    currentRoute == OnboardingRoute.serializer().descriptor.serialName ||
+                        currentRoute == LoginRoute.serializer().descriptor.serialName ||
+                        currentRoute == RegisterRoute.serializer().descriptor.serialName
+                if (currentRoute != null && !isEntryScreen) {
+                    navController.navigate(OnboardingRoute) {
+                        popUpTo(navController.graph.id) { inclusive = false }
                         launchSingleTop = true
                     }
                 }
@@ -110,9 +117,12 @@ fun AppNavHost(
     ) { outerPadding ->
         NavHost(
             navController = navController,
-            startDestination = HomeRoute,
+            startDestination = startDestination,
             modifier = Modifier.padding(outerPadding),
         ) {
+            composable<OnboardingRoute> {
+                OnboardingScreen()
+            }
             composable<HomeRoute> {
                 val statusMessage = when (val state = authUiState.sessionState) {
                     AuthSessionState.Initializing -> "Restoring saved session..."

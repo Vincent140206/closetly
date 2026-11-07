@@ -6,7 +6,10 @@ Navigation tetap terpusat di `core/navigation/AppNavHost.kt`. Route adalah type-
 
 ## Route saat ini
 
-- `HomeRoute` adalah development start destination.
+- Setelah splash selesai dan sesi dipulihkan, circular reveal membuka `HomeRoute` untuk sesi authenticated atau `OnboardingRoute` bila belum login. Kegagalan pemulihan/configuration unavailable juga menuju Onboarding.
+- `OnboardingRoute` membuka placeholder kosong di `feature/onboarding/OnboardingScreen.kt`, tanpa bottom bar, tombol, atau alur onboarding tambahan. Kontennya akan dikembangkan di branch terpisah.
+- `ClosetlyApp` memakai satu `AuthViewModel` yang sama dengan `AppNavHost`. Destination awal dipilih sekali; perubahan sesi berikutnya ditangani navigation effect, tanpa mengganti graph saat login/logout.
+- `HomeRoute` tetap menjadi default saat `AppNavHost` digunakan langsung untuk development atau tes app shell. Login berhasil, logout, dan sesi yang menjadi `NotAuthenticated` membersihkan back stack sebelumnya; pengguna yang keluar dari sesi kembali ke Onboarding. Login dan Register tetap dapat dibuka sebagai bagian flow Auth.
 - `LoginRoute`, `RegisterRoute`, dan `ProfileRoute` menjalankan flow Auth/Profile yang sudah ada.
 - `WardrobeRoute`, `OutfitRoute`, `PlannerRoute`, `InspirationRoute`, `WishlistRoute`, dan `WearHistoryRoute` menjaga identitas enam modul.
 - Enam route fitur masih membuka `ModulePlaceholderScreen` bersama karena folder standardisasi sengaja belum berisi screen implementation.
@@ -28,7 +31,7 @@ Lima destination utama:
 - Selected item mengikuti current destination.
 - Tab navigation memakai `launchSingleTop`, state restoration, dan `popUpTo<HomeRoute>` agar tidak menumpuk destination duplikat.
 - Bottom bar hanya tampil pada lima route utama.
-- Login, Register, Profile, Wishlist, dan Wear History tidak menampilkan bottom bar.
+- Onboarding, Login, Register, Profile, Wishlist, dan Wear History tidak menampilkan bottom bar.
 - Wishlist dan Wear History tetap dapat diakses dari Home.
 
 ## Root screen yang akan dihubungkan

@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 data object HomeRoute
 
 @Serializable
+data object OnboardingRoute
+
+@Serializable
 data object LoginRoute
 
 @Serializable
