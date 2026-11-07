@@ -28,6 +28,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +39,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import vin.pam.closetly.R
 import kotlinx.coroutines.delay
+
+private val SplashFontFamily = FontFamily(
+    Font(R.font.harabara_mais_demo, weight = FontWeight.Normal),
+)
 
 @Composable
 internal fun ClosetlyLogoAnimation(
@@ -69,6 +75,9 @@ internal fun ClosetlyLogoAnimation(
 
     val displayStyle = MaterialTheme.typography.displaySmall
     val style = displayStyle.copy(
+        fontFamily = SplashFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSynthesis = FontSynthesis.None,
         fontSize = displayStyle.fontSize * 1.5f,
         lineHeight = displayStyle.lineHeight * 1.5f,
         letterSpacing = displayStyle.letterSpacing * 1.5f,
