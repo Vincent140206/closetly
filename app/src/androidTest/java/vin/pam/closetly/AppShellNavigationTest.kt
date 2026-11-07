@@ -2,17 +2,33 @@ package vin.pam.closetly
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import org.junit.Rule
+import org.junit.Before
 import org.junit.Test
 import vin.pam.closetly.core.navigation.AppModule
+import androidx.navigation.compose.rememberNavController
+import vin.pam.closetly.core.config.AppConfig
+import vin.pam.closetly.core.navigation.AppNavHost
+import vin.pam.closetly.di.AppContainer
+import vin.pam.closetly.ui.theme.ClosetlyTheme
 
 class AppShellNavigationTest {
     @get:Rule
-    val composeRule = createAndroidComposeRule<MainActivity>()
+    val composeRule = createComposeRule()
+
+    @Before
+    fun showDevelopmentHome() {
+        val container = AppContainer(AppConfig(null, null))
+        composeRule.setContent {
+            ClosetlyTheme {
+                AppNavHost(navController = rememberNavController(), container = container)
+            }
+        }
+    }
 
     @Test
     fun everyModule_opensSharedPlaceholder_andNavigatesBackHome() {
