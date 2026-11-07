@@ -25,7 +25,9 @@ Jangan menulis hex color langsung di feature screen. Gunakan peran seperti `Mate
 
 ## Typography
 
-Typography memakai Android sans-serif bawaan sehingga tidak menambah font asset atau dependency eksternal.
+Typography memakai **DM Sans** untuk seluruh role Material 3. Font variable dibundel di `app/src/main/res/font/dm_sans.ttf` sehingga tersedia offline tanpa dependency tambahan. Bobot Regular (400), Medium (500), SemiBold (600), dan Bold (700) dikonfigurasi di `ui/theme/Type.kt`; ukuran, line height, dan letter spacing tetap mengikuti token yang ada.
+
+Untuk mengganti font aplikasi secara global, ubah keluarga `ClosetlySans` di `ui/theme/Type.kt`. `ClosetlyTheme` menerapkan typography tersebut ke seluruh aplikasi. Sumber font: [Google Fonts — DM Sans](https://github.com/google/fonts/tree/main/ofl/dmsans). Lisensi SIL Open Font License disertakan di `app/src/main/assets/licenses/dm_sans_OFL.txt`.
 
 | Peran | Material style | Ukuran | Line height |
 |---|---|---:|---:|
