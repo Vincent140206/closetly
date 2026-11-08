@@ -24,6 +24,12 @@ data object WardrobeRoute
 data object OutfitRoute
 
 @Serializable
+data class OutfitDetailRoute(val outfitId: String)
+
+@Serializable
+data class OutfitFormRoute(val outfitId: String? = null)
+
+@Serializable
 data object PlannerRoute
 
 @Serializable

@@ -49,9 +49,9 @@ class AppShellNavigationTest {
         composeRule.onNodeWithText("Digital Wardrobe").assertIsDisplayed()
         composeRule.onNodeWithText("Lemari").assertIsSelected()
 
-        composeRule.onNodeWithText("Komunitas").performClick()
+        composeRule.onNodeWithText("Inspirasi").performClick()
         composeRule.onNodeWithText("Community").assertIsDisplayed()
-        composeRule.onNodeWithText("Komunitas").assertIsSelected()
+        composeRule.onNodeWithText("Inspirasi").assertIsSelected()
 
         composeRule.onNodeWithText("Beranda").performClick()
         composeRule.onNodeWithText("Your wardrobe,\nyour story.").assertIsDisplayed()

@@ -1,5 +1,6 @@
 package vin.pam.closetly.core.navigation
 
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -9,6 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -16,6 +19,7 @@ import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.toRoute
 import vin.pam.closetly.R
 import vin.pam.closetly.core.ui.components.ClosetlyBottomBar
 import vin.pam.closetly.core.ui.components.ClosetlyBottomBarItem
@@ -29,6 +33,14 @@ import vin.pam.closetly.feature.auth.LoginScreen
 import vin.pam.closetly.feature.auth.RegisterScreen
 import vin.pam.closetly.feature.profile.ProfileScreen
 import vin.pam.closetly.feature.profile.ProfileViewModel
+import vin.pam.closetly.feature.onboarding.OnboardingScreen
+import vin.pam.closetly.feature.outfit.OutfitDetailViewModel
+import vin.pam.closetly.feature.outfit.OutfitFormViewModel
+import vin.pam.closetly.feature.outfit.OutfitGraph
+import vin.pam.closetly.feature.outfit.OutfitListViewModel
+import vin.pam.closetly.feature.outfit.ui.OutfitDetailScreen
+import vin.pam.closetly.feature.outfit.ui.OutfitFormScreen
+import vin.pam.closetly.feature.outfit.ui.OutfitScreen
 
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
@@ -41,7 +53,7 @@ private val PrimaryBottomBarItems = listOf(
     ClosetlyBottomBarItem(WardrobeDestinationId, "Lemari", R.drawable.ic_closetly_wardrobe),
     ClosetlyBottomBarItem(OutfitDestinationId, "Outfit", R.drawable.ic_closetly_outfit),
     ClosetlyBottomBarItem(PlannerDestinationId, "Planner", R.drawable.ic_closetly_planner),
-    ClosetlyBottomBarItem(CommunityDestinationId, "Komunitas", R.drawable.ic_closetly_community),
+    ClosetlyBottomBarItem(CommunityDestinationId, "Inspirasi", R.drawable.ic_closetly_community),
 )
 
 @Composable
@@ -223,8 +235,64 @@ fun AppNavHost(
                 ModulePlaceholderScreen(AppModule.Wardrobe, navController::popBackStack)
             }
             composable<OutfitRoute> {
-                ModulePlaceholderScreen(AppModule.Outfit, navController::popBackStack)
+                val outfitViewModel: OutfitListViewModel = viewModel(
+                    factory = OutfitListViewModel.factory(OutfitGraph.repository),
+                )
+                val outfitUiState by outfitViewModel.uiState.collectAsStateWithLifecycle()
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { outfitViewModel.refresh() }
+                OutfitScreen(
+                    uiState = outfitUiState,
+                    onCreateOutfit = { navController.navigate(OutfitFormRoute()) },
+                    onOutfitClick = { outfitId ->
+                        navController.navigate(OutfitDetailRoute(outfitId = outfitId))
+                    },
+                    onRetry = outfitViewModel::refresh,
+                )
             }
+            composable<OutfitDetailRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<OutfitDetailRoute>()
+                val detailViewModel: OutfitDetailViewModel = viewModel(
+                    factory = OutfitDetailViewModel.factory(OutfitGraph.repository, route.outfitId),
+                )
+                val detailUiState by detailViewModel.uiState.collectAsStateWithLifecycle()
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { detailViewModel.refresh() }
+                OutfitDetailScreen(
+                    uiState = detailUiState,
+                    onBack = navController::popBackStack,
+                    onEdit = { navController.navigate(OutfitFormRoute(outfitId = route.outfitId)) },
+                    onDeleteClick = detailViewModel::onDeleteClick,
+                    onDismissDelete = detailViewModel::onDismissDelete,
+                    onConfirmDelete = detailViewModel::onConfirmDelete,
+                    onDeleted = navController::popBackStack,
+                    // TODO: sambungkan ke detail pakaian milik Digital Wardrobe setelah route-nya ada.
+                    onItemClick = {},
+                    onRetry = detailViewModel::refresh,
+                )
+            }
+            composable<OutfitFormRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<OutfitFormRoute>()
+                val formViewModel: OutfitFormViewModel = viewModel(
+                    factory = OutfitFormViewModel.factory(OutfitGraph.repository, route.outfitId),
+                )
+                val formUiState by formViewModel.uiState.collectAsStateWithLifecycle()
+                OutfitFormScreen(
+                    uiState = formUiState,
+                    onBack = navController::popBackStack,
+                    onSaved = navController::popBackStack,
+                    onNameChange = formViewModel::onNameChange,
+                    onNameFocusLost = formViewModel::onNameFocusLost,
+                    onDescriptionChange = formViewModel::onDescriptionChange,
+                    onCategorySelected = formViewModel::onCategorySelected,
+                    onToggleItem = formViewModel::onToggleItem,
+                    onMoveItem = formViewModel::onMoveItem,
+                    onRemoveItem = formViewModel::onRemoveItem,
+                    onOpenWardrobe = {
+                        navController.navigateToPrimaryDestination(WardrobeDestinationId)
+                    },
+                    onSave = formViewModel::onSave,
+                )
+            }
+
             composable<PlannerRoute> {
                 ModulePlaceholderScreen(AppModule.Planner, navController::popBackStack)
             }
