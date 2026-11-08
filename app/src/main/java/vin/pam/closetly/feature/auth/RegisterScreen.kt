@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -95,7 +96,7 @@ fun RegisterScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = ClosetlySpacing.Xxl, vertical = ClosetlySpacing.Xl),
         ) {
-            RegisterHeader(onBack)
+            AuthHeader(onBack)
             Spacer(Modifier.height(ClosetlySpacing.Xxl))
             Text(
                 text = "Buat akunmu",
@@ -111,7 +112,7 @@ fun RegisterScreen(
             )
             Spacer(Modifier.height(ClosetlySpacing.Xxl))
             Column(verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Lg)) {
-                RegisterField(
+                AuthField(
                     label = "Nama Lengkap",
                     hint = "Sesuai KTP/Panggilan",
                     placeholder = "Masukkan nama lengkap",
@@ -124,7 +125,7 @@ fun RegisterScreen(
                     ),
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm)) {
-                    RegisterField(
+                    AuthField(
                         label = "Username",
                         placeholder = "Buat username",
                         value = username,
@@ -149,7 +150,7 @@ fun RegisterScreen(
                         )
                     }
                 }
-                RegisterField(
+                AuthField(
                     label = "Email",
                     placeholder = "Masukkan alamat email",
                     value = email,
@@ -158,7 +159,7 @@ fun RegisterScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm)) {
-                    RegisterField(
+                    AuthField(
                         label = "Password",
                         placeholder = "Buat password",
                         value = password,
@@ -171,7 +172,7 @@ fun RegisterScreen(
                     )
                     PasswordRequirements(password)
                 }
-                RegisterField(
+                AuthField(
                     label = "Konfirmasi Password",
                     placeholder = "Ketik ulang password",
                     value = confirmPassword,
@@ -231,7 +232,7 @@ fun RegisterScreen(
 }
 
 @Composable
-private fun RegisterHeader(onBack: () -> Unit) {
+internal fun AuthHeader(onBack: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Surface(
@@ -271,13 +272,14 @@ private fun RegisterHeader(onBack: () -> Unit) {
 }
 
 @Composable
-private fun RegisterField(
+internal fun AuthField(
     label: String,
     placeholder: String,
     value: String,
     onValueChange: (String) -> Unit,
     enabled: Boolean,
     keyboardOptions: KeyboardOptions,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     hint: String? = null,
     leadingIcon: (@Composable () -> Unit)? = null,
 ) {
@@ -324,6 +326,7 @@ private fun RegisterField(
                 null
             },
             keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
             visualTransformation = if (isPassword && !visible) {
                 PasswordVisualTransformation()
             } else {

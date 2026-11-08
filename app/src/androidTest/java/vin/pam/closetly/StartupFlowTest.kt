@@ -41,7 +41,7 @@ class StartupFlowTest {
         }
 
         composeRule.onNodeWithContentDescription("Closetly").assertIsDisplayed()
-        composeRule.onNodeWithText("Welcome back.").assertDoesNotExist()
+        composeRule.onNodeWithText("Selamat Datang\nKembali").assertDoesNotExist()
 
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.mainClock.autoAdvance = true
@@ -50,7 +50,7 @@ class StartupFlowTest {
         }
         composeRule.onNodeWithContentDescription("Closetly").assertDoesNotExist()
         composeRule.onNodeWithTag("onboarding_screen").assertIsDisplayed()
-        composeRule.onNodeWithText("Welcome back.").assertDoesNotExist()
+        composeRule.onNodeWithText("Selamat Datang\nKembali").assertDoesNotExist()
         composeRule.onNodeWithText("Beranda").assertDoesNotExist()
 
         restorationTester.emulateSavedInstanceStateRestore()
@@ -65,12 +65,12 @@ class StartupFlowTest {
         showApp(FakeAuthRepository(authenticatedSession))
 
         composeRule.onNodeWithContentDescription("Closetly").assertIsDisplayed()
-        composeRule.onNodeWithText("Welcome back.").assertDoesNotExist()
+        composeRule.onNodeWithText("Selamat Datang\nKembali").assertDoesNotExist()
         composeRule.mainClock.advanceTimeBy(3_000)
         composeRule.mainClock.autoAdvance = true
         waitForHome()
         composeRule.onNodeWithTag("onboarding_screen").assertDoesNotExist()
-        composeRule.onNodeWithText("Welcome back.").assertDoesNotExist()
+        composeRule.onNodeWithText("Selamat Datang\nKembali").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Closetly").assertDoesNotExist()
     }
 
@@ -82,13 +82,13 @@ class StartupFlowTest {
 
         composeRule.mainClock.advanceTimeBy(3_000)
         composeRule.onNodeWithContentDescription("Closetly").assertIsDisplayed()
-        composeRule.onNodeWithText("Welcome back.").assertDoesNotExist()
+        composeRule.onNodeWithText("Selamat Datang\nKembali").assertDoesNotExist()
         composeRule.onNodeWithText("Beranda").assertDoesNotExist()
 
         composeRule.runOnIdle { repository.sessionState.value = authenticatedSession }
         composeRule.mainClock.autoAdvance = true
         waitForHome()
-        composeRule.onNodeWithText("Welcome back.").assertDoesNotExist()
+        composeRule.onNodeWithText("Selamat Datang\nKembali").assertDoesNotExist()
     }
 
     private fun showApp(repository: AuthRepository) {
