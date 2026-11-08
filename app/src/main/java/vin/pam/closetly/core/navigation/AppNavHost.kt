@@ -2,6 +2,7 @@ package vin.pam.closetly.core.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -18,6 +19,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import vin.pam.closetly.R
 import vin.pam.closetly.core.ui.components.ClosetlyBottomBar
 import vin.pam.closetly.core.ui.components.ClosetlyBottomBarItem
+import vin.pam.closetly.feature.onboarding.OnboardingScreen
 import vin.pam.closetly.core.ui.shell.HomeScreen
 import vin.pam.closetly.core.ui.shell.ModulePlaceholderScreen
 import vin.pam.closetly.di.AppContainer
@@ -27,7 +29,6 @@ import vin.pam.closetly.feature.auth.LoginScreen
 import vin.pam.closetly.feature.auth.RegisterScreen
 import vin.pam.closetly.feature.profile.ProfileScreen
 import vin.pam.closetly.feature.profile.ProfileViewModel
-import vin.pam.closetly.feature.onboarding.OnboardingScreen
 
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
@@ -121,7 +122,17 @@ fun AppNavHost(
             modifier = Modifier.padding(outerPadding),
         ) {
             composable<OnboardingRoute> {
-                OnboardingScreen()
+                OnboardingScreen(
+                    modifier = Modifier.consumeWindowInsets(outerPadding),
+                    onGetStarted = {
+                        authViewModel.clearMessages()
+                        navController.navigate(RegisterRoute) { launchSingleTop = true }
+                    },
+                    onLogin = {
+                        authViewModel.clearMessages()
+                        navController.navigate(LoginRoute) { launchSingleTop = true }
+                    },
+                )
             }
             composable<HomeRoute> {
                 val statusMessage = when (val state = authUiState.sessionState) {
@@ -171,8 +182,11 @@ fun AppNavHost(
             }
             composable<LoginRoute> {
                 LoginScreen(
+                    modifier = Modifier.consumeWindowInsets(outerPadding),
                     uiState = authUiState,
                     onLogin = authViewModel::login,
+                    onRequestPasswordReset = authViewModel::requestPasswordReset,
+                    onClearMessages = authViewModel::clearMessages,
                     onRegister = {
                         authViewModel.clearMessages()
                         navController.navigate(RegisterRoute) { launchSingleTop = true }
@@ -182,6 +196,7 @@ fun AppNavHost(
             }
             composable<RegisterRoute> {
                 RegisterScreen(
+                    modifier = Modifier.consumeWindowInsets(outerPadding),
                     uiState = authUiState,
                     onRegister = authViewModel::register,
                     onLogin = {

@@ -40,12 +40,14 @@ class AuthViewModel(
 
     fun register(
         displayName: String,
+        username: String,
         email: String,
         password: String,
         confirmPassword: String,
     ) {
         val validationError = AuthInputValidator.registrationError(
             displayName = displayName,
+            username = username,
             email = email,
             password = password,
             confirmPassword = confirmPassword,
@@ -61,6 +63,7 @@ class AuthViewModel(
                     email = email.trim(),
                     password = password,
                     displayName = displayName.trim(),
+                    username = username,
                 )
             ) {
                 RegistrationResult.Authenticated -> {
@@ -72,12 +75,95 @@ class AuthViewModel(
                     _uiState.update {
                         it.copy(
                             noticeMessage =
-                                "Registration successful. Check your email and verify the account before signing in.",
+                                "Cek email konfirmasi di perangkat ini. Buka tautannya untuk kembali ke Closetly. " +
+                                    "Jika dibuka di perangkat lain, masuk manual setelah email terverifikasi.",
                         )
                     }
                 }
             }
         }
+    }
+
+    fun requestPasswordReset(email: String) {
+        if (AuthInputValidator.emailError(email) != null) {
+            showError("Masukkan alamat email yang valid.")
+            return
+        }
+
+        submit {
+            repository.requestPasswordReset(email.trim())
+            _uiState.update {
+                it.copy(
+                    noticeMessage =
+                        "Jika alamat email ini terdaftar, tautan reset akan dikirim. " +
+                            "Buka tautannya di perangkat yang sama.",
+                )
+            }
+        }
+    }
+
+    fun openPasswordRecovery(code: String?) {
+        val current = _uiState.value.passwordRecovery
+        if (current == PasswordRecoveryState.Opening ||
+            (current is PasswordRecoveryState.Ready && current.isSaving)
+        ) return
+
+        repository.clearPasswordRecovery()
+        if (code.isNullOrBlank()) {
+            setPasswordRecovery(PasswordRecoveryState.InvalidLink)
+            return
+        }
+
+        setPasswordRecovery(PasswordRecoveryState.Opening)
+        viewModelScope.launch {
+            try {
+                setPasswordRecovery(PasswordRecoveryState.Ready(repository.openPasswordRecovery(code)))
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Exception) {
+                setPasswordRecovery(PasswordRecoveryState.InvalidLink)
+            }
+        }
+    }
+
+    fun updateRecoveredPassword(password: String, confirmation: String) {
+        val recovery = _uiState.value.passwordRecovery as? PasswordRecoveryState.Ready ?: return
+        if (recovery.isSaving) return
+        val validationError = AuthInputValidator.passwordChangeError(password, confirmation)
+        if (validationError != null) {
+            setPasswordRecovery(recovery.copy(errorMessage = validationError))
+            return
+        }
+
+        setPasswordRecovery(recovery.copy(isSaving = true, errorMessage = null))
+        viewModelScope.launch {
+            try {
+                repository.updateRecoveredPassword(password)
+                setPasswordRecovery(PasswordRecoveryState.Complete)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Exception) {
+                setPasswordRecovery(
+                    recovery.copy(
+                        errorMessage = "Password gagal disimpan. Coba lagi atau minta tautan reset baru.",
+                    ),
+                )
+            }
+        }
+    }
+
+    fun dismissPasswordRecovery() {
+        val current = _uiState.value.passwordRecovery
+        if (current == PasswordRecoveryState.Opening ||
+            (current is PasswordRecoveryState.Ready && current.isSaving)
+        ) return
+
+        repository.clearPasswordRecovery()
+        setPasswordRecovery(null)
+    }
+
+    private fun setPasswordRecovery(state: PasswordRecoveryState?) {
+        _uiState.update { it.copy(passwordRecovery = state) }
     }
 
     fun logout() {
@@ -143,24 +229,40 @@ class AuthViewModel(
 }
 
 object AuthInputValidator {
-    fun loginError(email: String, password: String): String? = when {
-        !email.isValidEmail() -> "Enter a valid email address."
-        password.isBlank() -> "Password is required."
-        else -> null
-    }
+    internal const val MinimumPasswordLength = 8
+    private val UsernamePattern = Regex("[a-z0-9]+")
+
+    fun loginError(email: String, password: String): String? =
+        emailError(email) ?: "Password is required.".takeIf { password.isBlank() }
+
+    internal fun emailError(email: String): String? =
+        "Enter a valid email address.".takeUnless { email.isValidEmail() }
 
     fun registrationError(
         displayName: String,
+        username: String,
         email: String,
         password: String,
         confirmPassword: String,
     ): String? = when {
         displayName.trim().length < 2 -> "Display name must contain at least 2 characters."
         !email.isValidEmail() -> "Enter a valid email address."
-        password.length < 6 -> "Password must contain at least 6 characters."
+        !UsernamePattern.matches(username) -> "Gunakan huruf kecil dan angka tanpa spasi untuk username."
+        else -> passwordChangeError(password, confirmPassword)
+    }
+
+    internal fun passwordChangeError(password: String, confirmPassword: String): String? = when {
+        !hasMinimumPasswordLength(password) -> "Password harus memiliki minimal $MinimumPasswordLength karakter."
+        !hasPasswordNumber(password) -> "Password harus mengandung angka."
         password != confirmPassword -> "Password confirmation does not match."
         else -> null
     }
+
+    internal fun hasMinimumPasswordLength(password: String): Boolean =
+        password.length >= MinimumPasswordLength
+
+    internal fun hasPasswordNumber(password: String): Boolean =
+        password.any(Char::isDigit)
 
     private fun String.isValidEmail(): Boolean {
         val normalized = trim()
