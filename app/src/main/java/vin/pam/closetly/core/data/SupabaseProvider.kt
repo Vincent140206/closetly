@@ -11,6 +11,8 @@ object SupabaseProvider {
     const val AUTH_CALLBACK_SCHEME = "vin.pam.closetly"
     const val AUTH_CALLBACK_HOST = "auth-callback"
     const val AUTH_CALLBACK_URL = "$AUTH_CALLBACK_SCHEME://$AUTH_CALLBACK_HOST"
+    const val PASSWORD_RECOVERY_PATH = "/recovery"
+    const val PASSWORD_RECOVERY_URL = "$AUTH_CALLBACK_URL$PASSWORD_RECOVERY_PATH"
 
     fun createOrNull(url: String?, publishableKey: String?): SupabaseClient? {
         if (url.isNullOrBlank() || publishableKey.isNullOrBlank()) return null

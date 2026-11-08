@@ -21,4 +21,21 @@
     <string name="login_or">ATAU</string>
     <string name="login_register_prompt">Belum punya akun?</string>
     <string name="login_register_action">Daftar</string>
+    <string name="password_reset_request_title">Lupa password?</string>
+    <string name="password_reset_request_description">Masukkan email akun Closetly untuk mendapatkan tautan reset password.</string>
+    <string name="password_reset_send">Kirim tautan</string>
+    <string name="password_reset_sending">Mengirim…</string>
+    <string name="password_reset_cancel">Batal</string>
+    <string name="password_reset_close">Tutup</string>
+    <string name="password_reset_opening">Memeriksa tautan reset…</string>
+    <string name="password_reset_invalid_title">Tautan reset gagal dibuka</string>
+    <string name="password_reset_invalid_description">Minta tautan baru lewat menu Lupa password, lalu buka emailnya di perangkat yang sama.</string>
+    <string name="password_reset_new_title">Buat password baru</string>
+    <string name="password_reset_new_description">Atur password baru untuk %1$s. Gunakan minimal 8 karakter dan satu angka.</string>
+    <string name="password_reset_new_password">Password baru</string>
+    <string name="password_reset_confirmation">Konfirmasi password baru</string>
+    <string name="password_reset_save">Simpan password</string>
+    <string name="password_reset_saving">Menyimpan…</string>
+    <string name="password_reset_done_title">Password berhasil diperbarui</string>
+    <string name="password_reset_done_description">Sekarang kamu bisa masuk dengan password baru.</string>
 </resources>

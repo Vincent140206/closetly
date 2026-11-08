@@ -185,6 +185,8 @@ fun AppNavHost(
                     modifier = Modifier.consumeWindowInsets(outerPadding),
                     uiState = authUiState,
                     onLogin = authViewModel::login,
+                    onRequestPasswordReset = authViewModel::requestPasswordReset,
+                    onClearMessages = authViewModel::clearMessages,
                     onRegister = {
                         authViewModel.clearMessages()
                         navController.navigate(RegisterRoute) { launchSingleTop = true }

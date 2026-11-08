@@ -18,6 +18,7 @@ import vin.pam.closetly.core.ui.splash.CircularRevealTransition
 import vin.pam.closetly.di.AppContainer
 import vin.pam.closetly.feature.auth.AuthSessionState
 import vin.pam.closetly.feature.auth.AuthViewModel
+import vin.pam.closetly.feature.auth.PasswordRecoveryDialog
 
 @Composable
 fun ClosetlyApp(
@@ -28,6 +29,13 @@ fun ClosetlyApp(
 ) {
     val navController = rememberNavController()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
+    authUiState.passwordRecovery?.let { recovery ->
+        PasswordRecoveryDialog(
+            state = recovery,
+            onUpdatePassword = authViewModel::updateRecoveredPassword,
+            onDismiss = authViewModel::dismissPasswordRecovery,
+        )
+    }
     var logoFinished by rememberSaveable { mutableStateOf(false) }
     var startAtHome by remember { mutableStateOf<Boolean?>(null) }
 

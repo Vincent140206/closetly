@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +47,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import vin.pam.closetly.R
 import vin.pam.closetly.core.ui.components.ClosetlyButton
+import vin.pam.closetly.core.ui.components.ClosetlyTextButton
 import vin.pam.closetly.ui.theme.ClosetlySpacing
 import vin.pam.closetly.ui.theme.ClosetlyTheme
 
@@ -53,15 +55,37 @@ import vin.pam.closetly.ui.theme.ClosetlyTheme
 fun LoginScreen(
     uiState: AuthUiState,
     onLogin: (email: String, password: String) -> Unit,
+    onRequestPasswordReset: (email: String) -> Unit,
+    onClearMessages: () -> Unit,
     onRegister: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var showResetRequest by rememberSaveable { mutableStateOf(false) }
     val enabled = !uiState.isSubmitting
     val canSubmit = enabled && uiState.sessionState !is AuthSessionState.Initializing &&
         uiState.sessionState !is AuthSessionState.Unavailable
+    val recoveringPassword = uiState.passwordRecovery != null
+    LaunchedEffect(recoveringPassword) {
+        if (recoveringPassword && showResetRequest) {
+            showResetRequest = false
+            onClearMessages()
+        }
+    }
+    if (showResetRequest && !recoveringPassword) {
+        PasswordResetRequestDialog(
+            initialEmail = email,
+            uiState = uiState,
+            canSubmit = canSubmit,
+            onRequest = onRequestPasswordReset,
+            onDismiss = {
+                showResetRequest = false
+                onClearMessages()
+            },
+        )
+    }
     val submit = { onLogin(email, password) }
     val colors = MaterialTheme.colorScheme
     val typography = MaterialTheme.typography
@@ -121,11 +145,23 @@ fun LoginScreen(
                     },
                 )
             }
-            Spacer(Modifier.height(ClosetlySpacing.Xxl))
+            ClosetlyTextButton(
+                text = stringResource(R.string.password_reset_request_title),
+                onClick = {
+                    onClearMessages()
+                    showResetRequest = true
+                },
+                modifier = Modifier.align(Alignment.End),
+                enabled = canSubmit,
+                contentColor = colors.onSurface,
+            )
+            Spacer(Modifier.height(ClosetlySpacing.Xl))
 
-            SessionAvailabilityMessage(uiState.sessionState)
-            FeedbackMessage(uiState.errorMessage, isError = true)
-            FeedbackMessage(uiState.noticeMessage, isError = false)
+            if (!showResetRequest) {
+                SessionAvailabilityMessage(uiState.sessionState)
+                FeedbackMessage(uiState.errorMessage, isError = true)
+                FeedbackMessage(uiState.noticeMessage, isError = false)
+            }
             ClosetlyButton(
                 text = stringResource(if (uiState.isSubmitting) R.string.login_submitting else R.string.login_submit),
                 onClick = submit,
@@ -209,6 +245,8 @@ private fun LoginScreenPreview() {
         LoginScreen(
             uiState = AuthUiState(sessionState = AuthSessionState.NotAuthenticated),
             onLogin = { _, _ -> },
+            onRequestPasswordReset = {},
+            onClearMessages = {},
             onRegister = {},
             onBack = {},
         )

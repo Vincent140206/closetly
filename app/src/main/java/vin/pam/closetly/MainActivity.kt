@@ -6,15 +6,20 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.handleDeeplinks
 import kotlinx.coroutines.launch
 import vin.pam.closetly.core.data.SupabaseProvider
+import vin.pam.closetly.feature.auth.AuthViewModel
 import vin.pam.closetly.ui.theme.ClosetlyTheme
 
 class MainActivity : ComponentActivity() {
     private val container get() = (application as ClosetlyApplication).container
+    private val authViewModel by viewModels<AuthViewModel> {
+        AuthViewModel.factory(container.authRepository)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,7 +27,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) handleAuthCallback(intent)
         setContent {
             ClosetlyTheme {
-                ClosetlyApp(container = container)
+                ClosetlyApp(container = container, authViewModel = authViewModel)
             }
         }
     }
@@ -39,8 +44,15 @@ class MainActivity : ComponentActivity() {
             uri.host != SupabaseProvider.AUTH_CALLBACK_HOST
         ) return
 
+        val code = uri.getQueryParameter("code")
+        if (uri.path == SupabaseProvider.PASSWORD_RECOVERY_PATH) {
+            authViewModel.openPasswordRecovery(code)
+            return
+        }
+        if (!uri.path.isNullOrEmpty() && uri.path != "/") return
+
         val supabase = container.supabaseClient
-        if (supabase == null || uri.getQueryParameter("code").isNullOrBlank()) {
+        if (supabase == null || code.isNullOrBlank()) {
             showAuthCallbackError()
             return
         }

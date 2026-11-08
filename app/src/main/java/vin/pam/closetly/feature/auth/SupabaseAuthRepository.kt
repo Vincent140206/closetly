@@ -1,7 +1,10 @@
 package vin.pam.closetly.feature.auth
 
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.user.UserSession
+import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +17,8 @@ import vin.pam.closetly.core.data.SupabaseProvider
 class SupabaseAuthRepository(
     private val supabase: SupabaseClient,
 ) : AuthRepository {
+    private var recoverySession: UserSession? = null
+
     override val sessionState: Flow<AuthSessionState> = supabase.auth.sessionStatus
         .map(::toAuthSessionState)
         .distinctUntilChanged()
@@ -52,6 +57,42 @@ class SupabaseAuthRepository(
             this.email = email
             this.password = password
         }
+    }
+
+    override suspend fun requestPasswordReset(email: String) {
+        supabase.auth.resetPasswordForEmail(email, redirectUrl = SupabaseProvider.PASSWORD_RECOVERY_URL)
+    }
+
+    override suspend fun openPasswordRecovery(code: String): String {
+        supabase.auth.awaitInitialization()
+        val session = supabase.auth.exchangeCodeForSession(code, saveSession = false)
+        val email = requireNotNull(session.user?.email)
+        recoverySession = session
+        return email
+    }
+
+    override suspend fun updateRecoveredPassword(password: String) {
+        val session = checkNotNull(recoverySession)
+        // Keep the recovery token separate from the app's normal sign-in and storage.
+        val recoveryClient = createSupabaseClient(supabase.supabaseUrl, supabase.supabaseKey) {
+            install(Auth) {
+                autoLoadFromStorage = false
+                autoSaveToStorage = false
+                alwaysAutoRefresh = false
+            }
+        }
+        try {
+            recoveryClient.auth.awaitInitialization()
+            recoveryClient.auth.importSession(session, autoRefresh = false)
+            recoveryClient.auth.updateUser(updateCurrentUser = false) { this.password = password }
+            clearPasswordRecovery()
+        } finally {
+            recoveryClient.close()
+        }
+    }
+
+    override fun clearPasswordRecovery() {
+        recoverySession = null
     }
 
     override suspend fun signOut() {
