@@ -122,6 +122,7 @@ private class FakeAuthRepository(initialState: AuthSessionState) : AuthRepositor
         email: String,
         password: String,
         displayName: String,
+        username: String,
     ): RegistrationResult = error("Registration is outside the startup tests")
 
     override suspend fun signIn(email: String, password: String) {

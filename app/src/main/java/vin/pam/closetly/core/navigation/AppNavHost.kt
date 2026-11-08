@@ -193,6 +193,7 @@ fun AppNavHost(
             }
             composable<RegisterRoute> {
                 RegisterScreen(
+                    modifier = Modifier.consumeWindowInsets(outerPadding),
                     uiState = authUiState,
                     onRegister = authViewModel::register,
                     onLogin = {

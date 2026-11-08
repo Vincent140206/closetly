@@ -18,7 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -88,94 +87,6 @@ fun LoginScreen(
             onClick = onRegister,
             modifier = Modifier.fillMaxWidth(),
             style = ClosetlyButtonStyle.Secondary,
-            enabled = !uiState.isSubmitting,
-        )
-    }
-}
-
-@Composable
-fun RegisterScreen(
-    uiState: AuthUiState,
-    onRegister: (
-        displayName: String,
-        email: String,
-        password: String,
-        confirmPassword: String,
-    ) -> Unit,
-    onLogin: () -> Unit,
-    onBack: () -> Unit,
-) {
-    var displayName by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var confirmPassword by rememberSaveable { mutableStateOf("") }
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
-    val canSubmit = uiState.sessionState !is AuthSessionState.Initializing &&
-        uiState.sessionState !is AuthSessionState.Unavailable &&
-        !uiState.isSubmitting
-
-    AuthFormScaffold(
-        title = "Register",
-        heading = "Create your account.",
-        supportingText = "Save your wardrobe and keep every outfit idea in one place.",
-        onBack = onBack,
-    ) {
-        SessionAvailabilityMessage(uiState.sessionState)
-        OutlinedTextField(
-            value = displayName,
-            onValueChange = { displayName = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Display name") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            enabled = !uiState.isSubmitting,
-            shape = MaterialTheme.shapes.medium,
-        )
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Email") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next,
-            ),
-            enabled = !uiState.isSubmitting,
-            shape = MaterialTheme.shapes.medium,
-        )
-        PasswordField(
-            value = password,
-            onValueChange = { password = it },
-            label = "Password",
-            visible = passwordVisible,
-            onVisibilityChange = { passwordVisible = !passwordVisible },
-            imeAction = ImeAction.Next,
-            enabled = !uiState.isSubmitting,
-        )
-        PasswordField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = "Confirm password",
-            visible = confirmPasswordVisible,
-            onVisibilityChange = { confirmPasswordVisible = !confirmPasswordVisible },
-            imeAction = ImeAction.Done,
-            enabled = !uiState.isSubmitting,
-        )
-        FeedbackMessage(uiState.errorMessage, isError = true)
-        FeedbackMessage(uiState.noticeMessage, isError = false)
-        ClosetlyButton(
-            text = if (uiState.isSubmitting) "Creating account..." else "Register",
-            onClick = { onRegister(displayName, email, password, confirmPassword) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = canSubmit,
-            isLoading = uiState.isSubmitting,
-        )
-        ClosetlyTextButton(
-            text = "Already registered? Login",
-            onClick = onLogin,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
             enabled = !uiState.isSubmitting,
         )
     }
@@ -257,7 +168,7 @@ private fun PasswordField(
 }
 
 @Composable
-private fun SessionAvailabilityMessage(sessionState: AuthSessionState) {
+internal fun SessionAvailabilityMessage(sessionState: AuthSessionState) {
     val message = when (sessionState) {
         AuthSessionState.Initializing -> "Restoring the saved session..."
         is AuthSessionState.Failure -> sessionState.message
@@ -272,7 +183,7 @@ private fun SessionAvailabilityMessage(sessionState: AuthSessionState) {
 }
 
 @Composable
-private fun FeedbackMessage(message: String?, isError: Boolean) {
+internal fun FeedbackMessage(message: String?, isError: Boolean) {
     if (message == null) return
     Text(
         text = message,

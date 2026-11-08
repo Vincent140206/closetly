@@ -40,12 +40,14 @@ class AuthViewModel(
 
     fun register(
         displayName: String,
+        username: String,
         email: String,
         password: String,
         confirmPassword: String,
     ) {
         val validationError = AuthInputValidator.registrationError(
             displayName = displayName,
+            username = username,
             email = email,
             password = password,
             confirmPassword = confirmPassword,
@@ -61,6 +63,7 @@ class AuthViewModel(
                     email = email.trim(),
                     password = password,
                     displayName = displayName.trim(),
+                    username = username,
                 )
             ) {
                 RegistrationResult.Authenticated -> {
@@ -143,6 +146,9 @@ class AuthViewModel(
 }
 
 object AuthInputValidator {
+    internal const val MinimumPasswordLength = 8
+    private val UsernamePattern = Regex("[a-z0-9]+")
+
     fun loginError(email: String, password: String): String? = when {
         !email.isValidEmail() -> "Enter a valid email address."
         password.isBlank() -> "Password is required."
@@ -151,16 +157,25 @@ object AuthInputValidator {
 
     fun registrationError(
         displayName: String,
+        username: String,
         email: String,
         password: String,
         confirmPassword: String,
     ): String? = when {
         displayName.trim().length < 2 -> "Display name must contain at least 2 characters."
         !email.isValidEmail() -> "Enter a valid email address."
-        password.length < 6 -> "Password must contain at least 6 characters."
+        !UsernamePattern.matches(username) -> "Gunakan huruf kecil dan angka tanpa spasi untuk username."
+        !hasMinimumPasswordLength(password) -> "Password harus memiliki minimal $MinimumPasswordLength karakter."
+        !hasPasswordNumber(password) -> "Password harus mengandung angka."
         password != confirmPassword -> "Password confirmation does not match."
         else -> null
     }
+
+    internal fun hasMinimumPasswordLength(password: String): Boolean =
+        password.length >= MinimumPasswordLength
+
+    internal fun hasPasswordNumber(password: String): Boolean =
+        password.any(Char::isDigit)
 
     private fun String.isValidEmail(): Boolean {
         val normalized = trim()

@@ -25,12 +25,14 @@ class SupabaseAuthRepository(
         email: String,
         password: String,
         displayName: String,
+        username: String,
     ): RegistrationResult {
         val pendingUser = supabase.auth.signUpWith(Email) {
             this.email = email
             this.password = password
             data = buildJsonObject {
                 put("display_name", displayName)
+                put("username", username)
             }
         }
 

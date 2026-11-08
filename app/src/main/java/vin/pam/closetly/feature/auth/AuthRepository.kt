@@ -11,6 +11,7 @@ interface AuthRepository {
         email: String,
         password: String,
         displayName: String,
+        username: String,
     ): RegistrationResult
 
     suspend fun signIn(email: String, password: String)
@@ -34,6 +35,7 @@ class UnavailableAuthRepository(
         email: String,
         password: String,
         displayName: String,
+        username: String,
     ): RegistrationResult = throw IllegalStateException(reason)
 
     override suspend fun signIn(email: String, password: String): Unit =

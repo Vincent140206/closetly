@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import vin.pam.closetly.ui.theme.CardWhite
 import vin.pam.closetly.ui.theme.ClosetlyDimensions
@@ -41,6 +42,8 @@ fun ClosetlyButton(
     style: ClosetlyButtonStyle = ClosetlyButtonStyle.Primary,
     enabled: Boolean = true,
     isLoading: Boolean = false,
+    shape: Shape = ClosetlyFullShape,
+    trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -64,6 +67,7 @@ fun ClosetlyButton(
                 )
             }
             Text(text = text, style = MaterialTheme.typography.labelLarge)
+            if (!isLoading) trailingIcon?.invoke()
         }
     }
     val sizedModifier = modifier.defaultMinSize(minHeight = ClosetlyDimensions.MinimumTouchTarget)
@@ -73,7 +77,7 @@ fun ClosetlyButton(
             onClick = onClick,
             modifier = sizedModifier,
             enabled = isInteractive,
-            shape = ClosetlyFullShape,
+            shape = shape,
             interactionSource = interactionSource,
             border = ButtonDefaults.outlinedButtonBorder(enabled = isInteractive),
             colors = ButtonDefaults.outlinedButtonColors(
@@ -94,7 +98,7 @@ fun ClosetlyButton(
             onClick = onClick,
             modifier = sizedModifier,
             enabled = isInteractive,
-            shape = ClosetlyFullShape,
+            shape = shape,
             interactionSource = interactionSource,
             colors = ButtonDefaults.buttonColors(
                 containerColor = containerColor,
@@ -113,12 +117,14 @@ fun ClosetlyTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    contentColor: Color = Color.Unspecified,
 ) {
     TextButton(
         onClick = onClick,
         modifier = modifier.defaultMinSize(minHeight = ClosetlyDimensions.MinimumTouchTarget),
         enabled = enabled,
         shape = ClosetlyFullShape,
+        colors = ButtonDefaults.textButtonColors(contentColor = contentColor),
     ) {
         Text(text = text, style = MaterialTheme.typography.labelLarge)
     }
