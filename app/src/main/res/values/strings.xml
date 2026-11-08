@@ -10,4 +10,5 @@
     <string name="onboarding_confusion_label">Bingung Outfit</string>
     <string name="onboarding_log_value">Daily</string>
     <string name="onboarding_log_label">OOTD Log</string>
+    <string name="auth_callback_error">Sesi dari tautan gagal dibuka. Kalau email sudah terverifikasi, coba masuk dengan email dan password.</string>
 </resources>

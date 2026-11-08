@@ -75,7 +75,8 @@ class AuthViewModel(
                     _uiState.update {
                         it.copy(
                             noticeMessage =
-                                "Registration successful. Check your email and verify the account before signing in.",
+                                "Cek email konfirmasi di perangkat ini. Buka tautannya untuk kembali ke Closetly. " +
+                                    "Jika dibuka di perangkat lain, masuk manual setelah email terverifikasi.",
                         )
                     }
                 }

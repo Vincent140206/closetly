@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import vin.pam.closetly.core.data.SupabaseProvider
 
 class SupabaseAuthRepository(
     private val supabase: SupabaseClient,
@@ -27,7 +28,10 @@ class SupabaseAuthRepository(
         displayName: String,
         username: String,
     ): RegistrationResult {
-        val pendingUser = supabase.auth.signUpWith(Email) {
+        val pendingUser = supabase.auth.signUpWith(
+            Email,
+            redirectUrl = SupabaseProvider.AUTH_CALLBACK_URL,
+        ) {
             this.email = email
             this.password = password
             data = buildJsonObject {
