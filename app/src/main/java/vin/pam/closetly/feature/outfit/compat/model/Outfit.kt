@@ -1,4 +1,4 @@
-package vin.pam.closetly.feature.outfit.model
+package vin.pam.closetly.feature.outfit.compat.model
 
 import java.time.LocalDate
 

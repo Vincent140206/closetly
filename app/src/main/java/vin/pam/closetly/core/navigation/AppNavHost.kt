@@ -270,7 +270,7 @@ fun AppNavHost(
                     onConfirmDelete = detailViewModel::onConfirmDelete,
                     onDeleted = navController::popBackStack,
                     // TODO: sambungkan ke detail pakaian milik Digital Wardrobe setelah route-nya ada.
-                    onItemClick = null,
+                    onItemClick = {},
                     onRetry = detailViewModel::refresh,
                 )
             }

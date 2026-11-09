@@ -4,46 +4,47 @@ import vin.pam.closetly.feature.outfit.model.ClothingCategory
 import vin.pam.closetly.feature.outfit.model.ClothingOption
 import vin.pam.closetly.feature.outfit.model.Outfit
 
-sealed interface OutfitLoadState<out T> {
-    data object Loading : OutfitLoadState<Nothing>
-    data class Loaded<T>(val value: T) : OutfitLoadState<T>
-    data class Error(val message: String) : OutfitLoadState<Nothing>
-}
-
-data class OutfitDetailUiState(
-    val outfit: OutfitLoadState<Outfit> = OutfitLoadState.Loading,
-    val showDeleteConfirmation: Boolean = false,
-    val isDeleting: Boolean = false,
-    val deleteError: String? = null,
-    val deleted: Boolean = false,
+data class OutfitListUiState(
+    val isLoading: Boolean = true,
+    val outfits: List<Outfit> = emptyList(),
+    val errorMessage: String? = null,
 )
 
 data class OutfitFormUiState(
-    val name: String = "",
-    val nameTouched: Boolean = false,
-    val description: String = "",
-    val availableItems: List<ClothingOption> = emptyList(),
-    val selectedItems: List<ClothingOption> = emptyList(),
-    val activeCategory: ClothingCategory? = null,
-    val isEditing: Boolean = false,
     val isLoading: Boolean = false,
-    val loadError: String? = null,
     val isSaving: Boolean = false,
-    val saveError: String? = null,
-    val saved: Boolean = false,
+    val isEditing: Boolean = false,
+    val name: String = "",
+    val description: String = "",
+    val selectedItems: List<ClothingOption> = emptyList(),
+    val activeCategory: ClothingCategory = ClothingCategory.Top,
+    /** Hanya item aktif dari Digital Wardrobe. */
+    val availableItems: List<ClothingOption> = emptyList(),
+    val nameTouched: Boolean = false,
+    val errorMessage: String? = null,
+    val isSaved: Boolean = false,
 ) {
     val nameError: String?
-        get() = "Nama outfit wajib diisi".takeIf { nameTouched && name.isBlank() }
-
-    val visibleItems: List<ClothingOption>
-        get() = availableItems.filter { activeCategory == null || it.category == activeCategory }
+        get() = if (nameTouched && name.isBlank()) "Nama outfit wajib diisi" else null
 
     val canSave: Boolean
-        get() = !isLoading && loadError == null && !isSaving && !saved &&
-            name.isNotBlank() && selectedItems.isNotEmpty()
+        get() = name.isNotBlank() && selectedItems.isNotEmpty() && !isSaving && !isLoading
+
+    val visibleItems: List<ClothingOption>
+        get() = availableItems.filter { it.category == activeCategory }
 }
 
+data class OutfitDetailUiState(
+    val isLoading: Boolean = true,
+    val outfit: Outfit? = null,
+    val errorMessage: String? = null,
+    val showDeleteDialog: Boolean = false,
+    val isDeleting: Boolean = false,
+    val isDeleted: Boolean = false,
+)
+
+/** Memindahkan elemen dari indeks [from] ke [to]; indeks di luar rentang diabaikan. */
 internal fun <T> List<T>.moved(from: Int, to: Int): List<T> {
-    if (from !in indices || to !in indices || from == to) return this
+    if (from == to || from !in indices || to !in indices) return this
     return toMutableList().apply { add(to, removeAt(from)) }
 }

@@ -5,11 +5,13 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import org.junit.Rule
 import org.junit.Before
@@ -57,7 +59,7 @@ class AppShellNavigationTest {
         composeRule.onNodeWithText("Lemari").assertIsSelected()
 
         composeRule.onNodeWithText("Outfit").performClick()
-        composeRule.onNodeWithText("Mix & Match Outfit").assertIsDisplayed()
+        composeRule.onNodeWithText("Mix & Match").assertIsDisplayed()
         composeRule.onNodeWithText("Outfit").assertIsSelected()
 
         composeRule.onNodeWithText("Inspirasi").performClick()
@@ -74,23 +76,24 @@ class AppShellNavigationTest {
         val name = "Outfit uji integrasi"
         val editedName = "Outfit uji setelah edit"
         composeRule.onNodeWithText("Outfit").performClick()
-        composeRule.onNodeWithText("Buat outfit").performClick()
-        composeRule.onNodeWithText("Nama outfit").performTextReplacement(name)
+        composeRule.onNodeWithText("+ Buat Outfit").performClick()
+        scrollTo("Nama Outfit")
+        outfitNameField().performTextReplacement(name)
         scrollTo("White Oversized Shirt")
         composeRule.onNodeWithText("White Oversized Shirt").performClick()
-        scrollTo("Simpan outfit")
-        composeRule.onNodeWithText("Simpan outfit").performClick()
+        composeRule.onNodeWithText("Simpan Outfit", substring = true).performClick()
 
         composeRule.onNodeWithText(name).performClick()
-        composeRule.onNodeWithText("White Oversized Shirt").assertIsDisplayed()
-        composeRule.onNodeWithText("Edit outfit").performClick()
-        composeRule.onNodeWithText("Nama outfit").performTextReplacement(editedName)
-        composeRule.onNodeWithText("Simpan outfit").performClick()
+        composeRule.onNodeWithText("White Oversized Shirt").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Edit Outfit").performScrollTo().performClick()
+        scrollTo("Nama Outfit")
+        outfitNameField().performTextReplacement(editedName)
+        composeRule.onNodeWithText("Simpan Outfit", substring = true).performClick()
 
-        composeRule.onNodeWithText(editedName).assertIsDisplayed()
-        composeRule.onNodeWithText("Hapus outfit").performClick()
+        composeRule.onNodeWithText(editedName).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Hapus Outfit").performScrollTo().performClick()
         composeRule.onNodeWithText("Hapus").performClick()
-        composeRule.onNodeWithText("Mix & Match Outfit").assertIsDisplayed()
+        composeRule.onNodeWithText("Mix & Match").assertIsDisplayed()
         composeRule.onNodeWithText(editedName).assertDoesNotExist()
     }
 
@@ -103,6 +106,8 @@ class AppShellNavigationTest {
         composeRule.onNodeWithText("Inspirasiku").assertDoesNotExist()
         composeRule.onNodeWithText("OOTD Harian").assertIsDisplayed()
     }
+
+    private fun outfitNameField() = composeRule.onAllNodes(hasSetTextAction())[0]
 
     private fun scrollTo(text: String) {
         val verticalScroll = SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)
