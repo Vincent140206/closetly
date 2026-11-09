@@ -3,12 +3,12 @@ package vin.pam.closetly.core.navigation
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -31,9 +31,14 @@ import vin.pam.closetly.feature.auth.AuthSessionState
 import vin.pam.closetly.feature.auth.AuthViewModel
 import vin.pam.closetly.feature.auth.LoginScreen
 import vin.pam.closetly.feature.auth.RegisterScreen
+import vin.pam.closetly.feature.inspiration.InspirationViewModel
+import vin.pam.closetly.feature.inspiration.ui.CommunityDestination
+import vin.pam.closetly.feature.inspiration.ui.InspirationCollectionDestination
+import vin.pam.closetly.feature.inspiration.ui.ManageCollectionsDestination
+import vin.pam.closetly.feature.inspiration.ui.MyInspirationDestination
+import vin.pam.closetly.feature.inspiration.ui.StyleDetailDestination
 import vin.pam.closetly.feature.profile.ProfileScreen
 import vin.pam.closetly.feature.profile.ProfileViewModel
-import vin.pam.closetly.feature.onboarding.OnboardingScreen
 import vin.pam.closetly.feature.outfit.OutfitDetailViewModel
 import vin.pam.closetly.feature.outfit.OutfitFormViewModel
 import vin.pam.closetly.feature.outfit.OutfitGraph
@@ -296,9 +301,54 @@ fun AppNavHost(
             composable<PlannerRoute> {
                 ModulePlaceholderScreen(AppModule.Planner, navController::popBackStack)
             }
-            composable<InspirationRoute> {
-                ModulePlaceholderScreen(AppModule.Inspiration, navController::popBackStack)
+
+            //inspiration route
+            composable<InspirationRoute> { entry ->
+                val vm = viewModel<InspirationViewModel>(entry, factory = InspirationViewModel.Factory)
+                CommunityDestination(
+                    viewModel = vm,
+                    onOpenPost = { navController.navigate(InspirationDetailRoute(it)) },
+                    onOpenMyInspiration = { navController.navigate(MyInspirationRoute) },
+                )
             }
+            composable<InspirationDetailRoute> { entry ->
+                val parent = remember(entry) { navController.getBackStackEntry<InspirationRoute>() }
+                val vm = viewModel<InspirationViewModel>(parent, factory = InspirationViewModel.Factory)
+                StyleDetailDestination(
+                    viewModel = vm,
+                    postId = entry.toRoute<InspirationDetailRoute>().postId,
+                    onBack = { navController.popBackStack() },
+                    onOpenPost = { navController.navigate(InspirationDetailRoute(it)) },
+                )
+            }
+            composable<MyInspirationRoute> { entry ->
+                val parent = remember(entry) { navController.getBackStackEntry<InspirationRoute>() }
+                val vm = viewModel<InspirationViewModel>(parent, factory = InspirationViewModel.Factory)
+                MyInspirationDestination(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    onOpenManage = { navController.navigate(ManageCollectionsRoute) },
+                    onOpenCollection = { navController.navigate(InspirationCollectionRoute(it)) },
+                    onOpenPost = { navController.navigate(InspirationDetailRoute(it)) },
+                )
+            }
+            composable<InspirationCollectionRoute> { entry ->
+                val parent = remember(entry) { navController.getBackStackEntry<InspirationRoute>() }
+                val vm = viewModel<InspirationViewModel>(parent, factory = InspirationViewModel.Factory)
+                InspirationCollectionDestination(
+                    viewModel = vm,
+                    collectionId = entry.toRoute<InspirationCollectionRoute>().collectionId,
+                    onBack = { navController.popBackStack() },
+                    onOpenManage = { navController.navigate(ManageCollectionsRoute) },
+                    onOpenPost = { navController.navigate(InspirationDetailRoute(it)) },
+                )
+            }
+            composable<ManageCollectionsRoute> { entry ->
+                val parent = remember(entry) { navController.getBackStackEntry<InspirationRoute>() }
+                val vm = viewModel<InspirationViewModel>(parent, factory = InspirationViewModel.Factory)
+                ManageCollectionsDestination(viewModel = vm, onBack = { navController.popBackStack() })
+            }
+
             composable<WishlistRoute> {
                 ModulePlaceholderScreen(AppModule.Wishlist, navController::popBackStack)
             }

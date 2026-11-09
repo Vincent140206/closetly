@@ -35,6 +35,11 @@ data object PlannerRoute
 @Serializable
 data object InspirationRoute
 
+@Serializable data class InspirationDetailRoute(val postId: String)
+@Serializable data object MyInspirationRoute
+@Serializable data class InspirationCollectionRoute(val collectionId: String)
+@Serializable data object ManageCollectionsRoute
+
 @Serializable
 data object WishlistRoute
 
