@@ -19,21 +19,34 @@ class AuthInputValidatorTest {
     }
 
     @Test
-    fun registration_requiresMatchingPasswordsAndDisplayName() {
+    fun registration_checksNameUsernameAndPassword() {
         assertEquals(
             "Display name must contain at least 2 characters.",
-            AuthInputValidator.registrationError("A", "user@example.com", "secret1", "secret1"),
+            AuthInputValidator.registrationError("A", "alice", "user@example.com", "secret12", "secret12"),
         )
         assertEquals(
             "Password confirmation does not match.",
-            AuthInputValidator.registrationError("Alice", "user@example.com", "secret1", "secret2"),
+            AuthInputValidator.registrationError("Alice", "alice", "user@example.com", "secret12", "secret13"),
+        )
+        assertEquals(
+            "Gunakan huruf kecil dan angka tanpa spasi untuk username.",
+            AuthInputValidator.registrationError("Alice", "Alice 1", "user@example.com", "secret12", "secret12"),
+        )
+        assertEquals(
+            "Password harus memiliki minimal 8 karakter.",
+            AuthInputValidator.registrationError("Alice", "alice", "user@example.com", "short1", "short1"),
+        )
+        assertEquals(
+            "Password harus mengandung angka.",
+            AuthInputValidator.registrationError("Alice", "alice", "user@example.com", "secretword", "secretword"),
         )
         assertNull(
             AuthInputValidator.registrationError(
                 "Alice",
+                "alice1",
                 "user@example.com",
-                "secret1",
-                "secret1",
+                "secret12",
+                "secret12",
             ),
         )
     }

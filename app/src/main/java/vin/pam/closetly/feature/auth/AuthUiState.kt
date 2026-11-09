@@ -28,7 +28,20 @@ data class AuthUiState(
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
     val noticeMessage: String? = null,
+    val passwordRecovery: PasswordRecoveryState? = null,
 )
+
+sealed interface PasswordRecoveryState {
+    data object Opening : PasswordRecoveryState
+    data object InvalidLink : PasswordRecoveryState
+    data object Complete : PasswordRecoveryState
+
+    data class Ready(
+        val email: String,
+        val isSaving: Boolean = false,
+        val errorMessage: String? = null,
+    ) : PasswordRecoveryState
+}
 
 sealed interface RegistrationResult {
     data object Authenticated : RegistrationResult

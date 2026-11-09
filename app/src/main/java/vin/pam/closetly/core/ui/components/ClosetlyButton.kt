@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -19,6 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import vin.pam.closetly.ui.theme.CardWhite
 import vin.pam.closetly.ui.theme.ClosetlyDimensions
@@ -41,6 +44,9 @@ fun ClosetlyButton(
     style: ClosetlyButtonStyle = ClosetlyButtonStyle.Primary,
     enabled: Boolean = true,
     isLoading: Boolean = false,
+    leadingIcon: ImageVector? = null,
+    shape: Shape = ClosetlyFullShape,
+    trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -63,7 +69,16 @@ fun ClosetlyButton(
                     strokeWidth = 2.dp,
                 )
             }
+            // ini jujur rada bingung leading icon & trailing icon, bs pake keduanya kah?
+            if (!isLoading && leadingIcon != null) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
             Text(text = text, style = MaterialTheme.typography.labelLarge)
+            if (!isLoading) trailingIcon?.invoke()
         }
     }
     val sizedModifier = modifier.defaultMinSize(minHeight = ClosetlyDimensions.MinimumTouchTarget)
@@ -73,7 +88,7 @@ fun ClosetlyButton(
             onClick = onClick,
             modifier = sizedModifier,
             enabled = isInteractive,
-            shape = ClosetlyFullShape,
+            shape = shape,
             interactionSource = interactionSource,
             border = ButtonDefaults.outlinedButtonBorder(enabled = isInteractive),
             colors = ButtonDefaults.outlinedButtonColors(
@@ -94,7 +109,7 @@ fun ClosetlyButton(
             onClick = onClick,
             modifier = sizedModifier,
             enabled = isInteractive,
-            shape = ClosetlyFullShape,
+            shape = shape,
             interactionSource = interactionSource,
             colors = ButtonDefaults.buttonColors(
                 containerColor = containerColor,
@@ -113,12 +128,14 @@ fun ClosetlyTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    contentColor: Color = Color.Unspecified,
 ) {
     TextButton(
         onClick = onClick,
         modifier = modifier.defaultMinSize(minHeight = ClosetlyDimensions.MinimumTouchTarget),
         enabled = enabled,
         shape = ClosetlyFullShape,
+        colors = ButtonDefaults.textButtonColors(contentColor = contentColor),
     ) {
         Text(text = text, style = MaterialTheme.typography.labelLarge)
     }

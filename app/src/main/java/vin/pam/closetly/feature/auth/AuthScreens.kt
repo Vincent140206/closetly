@@ -1,218 +1,211 @@
 package vin.pam.closetly.feature.auth
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import vin.pam.closetly.R
 import vin.pam.closetly.core.ui.components.ClosetlyButton
-import vin.pam.closetly.core.ui.components.ClosetlyButtonStyle
-import vin.pam.closetly.core.ui.components.ClosetlyCard
-import vin.pam.closetly.core.ui.components.ClosetlyScaffold
 import vin.pam.closetly.core.ui.components.ClosetlyTextButton
 import vin.pam.closetly.ui.theme.ClosetlySpacing
+import vin.pam.closetly.ui.theme.ClosetlyTheme
 
 @Composable
 fun LoginScreen(
     uiState: AuthUiState,
     onLogin: (email: String, password: String) -> Unit,
+    onRequestPasswordReset: (email: String) -> Unit,
+    onClearMessages: () -> Unit,
     onRegister: () -> Unit,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    val canSubmit = uiState.sessionState !is AuthSessionState.Initializing &&
-        uiState.sessionState !is AuthSessionState.Unavailable &&
-        !uiState.isSubmitting
-
-    AuthFormScaffold(
-        title = "Login",
-        heading = "Welcome back.",
-        supportingText = "Sign in to continue building your wardrobe story.",
-        onBack = onBack,
-    ) {
-        SessionAvailabilityMessage(uiState.sessionState)
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Email") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next,
-            ),
-            enabled = !uiState.isSubmitting,
-            shape = MaterialTheme.shapes.medium,
-        )
-        PasswordField(
-            value = password,
-            onValueChange = { password = it },
-            label = "Password",
-            visible = passwordVisible,
-            onVisibilityChange = { passwordVisible = !passwordVisible },
-            imeAction = ImeAction.Done,
-            enabled = !uiState.isSubmitting,
-        )
-        FeedbackMessage(uiState.errorMessage, isError = true)
-        FeedbackMessage(uiState.noticeMessage, isError = false)
-        ClosetlyButton(
-            text = if (uiState.isSubmitting) "Signing in..." else "Login",
-            onClick = { onLogin(email, password) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = canSubmit,
-            isLoading = uiState.isSubmitting,
-        )
-        ClosetlyButton(
-            text = "Create an account",
-            onClick = onRegister,
-            modifier = Modifier.fillMaxWidth(),
-            style = ClosetlyButtonStyle.Secondary,
-            enabled = !uiState.isSubmitting,
+    var password by remember { mutableStateOf("") }
+    var showResetRequest by rememberSaveable { mutableStateOf(false) }
+    val enabled = !uiState.isSubmitting
+    val canSubmit = enabled && uiState.sessionState !is AuthSessionState.Initializing &&
+        uiState.sessionState !is AuthSessionState.Unavailable
+    val recoveringPassword = uiState.passwordRecovery != null
+    LaunchedEffect(recoveringPassword) {
+        if (recoveringPassword && showResetRequest) {
+            showResetRequest = false
+            onClearMessages()
+        }
+    }
+    if (showResetRequest && !recoveringPassword) {
+        PasswordResetRequestDialog(
+            initialEmail = email,
+            uiState = uiState,
+            canSubmit = canSubmit,
+            onRequest = onRequestPasswordReset,
+            onDismiss = {
+                showResetRequest = false
+                onClearMessages()
+            },
         )
     }
-}
+    val submit = { onLogin(email, password) }
+    val colors = MaterialTheme.colorScheme
+    val typography = MaterialTheme.typography
 
-@Composable
-fun RegisterScreen(
-    uiState: AuthUiState,
-    onRegister: (
-        displayName: String,
-        email: String,
-        password: String,
-        confirmPassword: String,
-    ) -> Unit,
-    onLogin: () -> Unit,
-    onBack: () -> Unit,
-) {
-    var displayName by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var confirmPassword by rememberSaveable { mutableStateOf("") }
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
-    val canSubmit = uiState.sessionState !is AuthSessionState.Initializing &&
-        uiState.sessionState !is AuthSessionState.Unavailable &&
-        !uiState.isSubmitting
-
-    AuthFormScaffold(
-        title = "Register",
-        heading = "Create your account.",
-        supportingText = "Save your wardrobe and keep every outfit idea in one place.",
-        onBack = onBack,
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .background(colors.surface)
+            .safeDrawingPadding()
+            .imePadding(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        SessionAvailabilityMessage(uiState.sessionState)
-        OutlinedTextField(
-            value = displayName,
-            onValueChange = { displayName = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Display name") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            enabled = !uiState.isSubmitting,
-            shape = MaterialTheme.shapes.medium,
-        )
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Email") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next,
-            ),
-            enabled = !uiState.isSubmitting,
-            shape = MaterialTheme.shapes.medium,
-        )
-        PasswordField(
-            value = password,
-            onValueChange = { password = it },
-            label = "Password",
-            visible = passwordVisible,
-            onVisibilityChange = { passwordVisible = !passwordVisible },
-            imeAction = ImeAction.Next,
-            enabled = !uiState.isSubmitting,
-        )
-        PasswordField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = "Confirm password",
-            visible = confirmPasswordVisible,
-            onVisibilityChange = { confirmPasswordVisible = !confirmPasswordVisible },
-            imeAction = ImeAction.Done,
-            enabled = !uiState.isSubmitting,
-        )
-        FeedbackMessage(uiState.errorMessage, isError = true)
-        FeedbackMessage(uiState.noticeMessage, isError = false)
-        ClosetlyButton(
-            text = if (uiState.isSubmitting) "Creating account..." else "Register",
-            onClick = { onRegister(displayName, email, password, confirmPassword) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = canSubmit,
-            isLoading = uiState.isSubmitting,
-        )
-        ClosetlyTextButton(
-            text = "Already registered? Login",
-            onClick = onLogin,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            enabled = !uiState.isSubmitting,
-        )
-    }
-}
-
-@Composable
-private fun AuthFormScaffold(
-    title: String,
-    heading: String,
-    supportingText: String,
-    onBack: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    ClosetlyScaffold(title = title, onBack = onBack) { padding ->
         Column(
             modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
+                .widthIn(max = 480.dp)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .imePadding()
-                .padding(ClosetlySpacing.Lg),
-            verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Lg),
+                .heightIn(min = maxHeight)
+                .padding(horizontal = ClosetlySpacing.Xxl, vertical = ClosetlySpacing.Xl),
         ) {
+            AuthHeader(onBack)
+            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(ClosetlySpacing.Xxl))
+
             Text(
-                text = heading,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                text = stringResource(R.string.login_heading),
+                modifier = Modifier.semantics { heading() },
+                style = typography.displaySmall,
+                color = colors.onSurface,
             )
-            Text(
-                text = supportingText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Spacer(Modifier.height(ClosetlySpacing.Xl))
+            Column(verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Lg)) {
+                AuthField(
+                    label = stringResource(R.string.login_email),
+                    placeholder = stringResource(R.string.login_email_placeholder),
+                    value = email,
+                    onValueChange = { email = it },
+                    enabled = enabled,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
+                    ),
+                )
+                AuthField(
+                    label = stringResource(R.string.login_password),
+                    placeholder = stringResource(R.string.login_password_placeholder),
+                    value = password,
+                    onValueChange = { password = it },
+                    enabled = enabled,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { if (canSubmit) submit() }),
+                    leadingIcon = {
+                        Icon(painterResource(R.drawable.ic_register_lock), contentDescription = null)
+                    },
+                )
+            }
+            ClosetlyTextButton(
+                text = stringResource(R.string.password_reset_request_title),
+                onClick = {
+                    onClearMessages()
+                    showResetRequest = true
+                },
+                modifier = Modifier.align(Alignment.End),
+                enabled = canSubmit,
+                contentColor = colors.onSurface,
             )
-            ClosetlyCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Md),
-                    content = content,
+            Spacer(Modifier.height(ClosetlySpacing.Xl))
+
+            if (!showResetRequest) {
+                SessionAvailabilityMessage(uiState.sessionState)
+                FeedbackMessage(uiState.errorMessage, isError = true)
+                FeedbackMessage(uiState.noticeMessage, isError = false)
+            }
+            ClosetlyButton(
+                text = stringResource(if (uiState.isSubmitting) R.string.login_submitting else R.string.login_submit),
+                onClick = submit,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                enabled = canSubmit,
+                isLoading = uiState.isSubmitting,
+                shape = MaterialTheme.shapes.medium,
+                trailingIcon = {
+                    Icon(painterResource(R.drawable.ic_closetly_arrow_forward), contentDescription = null)
+                },
+            )
+            Spacer(Modifier.height(ClosetlySpacing.Sm))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HorizontalDivider(Modifier.weight(1f), color = colors.outline)
+                Text(
+                    text = stringResource(R.string.login_or),
+                    style = typography.labelSmall,
+                    color = colors.onSurfaceVariant,
+                )
+                HorizontalDivider(Modifier.weight(1f), color = colors.outline)
+            }
+
+            Spacer(Modifier.weight(2f))
+            Spacer(Modifier.height(ClosetlySpacing.Xl))
+            TextButton(
+                onClick = onRegister,
+                enabled = enabled,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                val prompt = stringResource(R.string.login_register_prompt)
+                val action = stringResource(R.string.login_register_action)
+                Text(
+                    text = buildAnnotatedString {
+                        append(prompt)
+                        append("  ")
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(action) }
+                    },
+                    style = typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = colors.onSurface.copy(alpha = if (enabled) 1f else 0.38f),
                 )
             }
         }
@@ -220,44 +213,7 @@ private fun AuthFormScaffold(
 }
 
 @Composable
-private fun PasswordField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    visible: Boolean,
-    onVisibilityChange: () -> Unit,
-    imeAction: ImeAction,
-    enabled: Boolean,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        label = { Text(label) },
-        singleLine = true,
-        visualTransformation = if (visible) {
-            VisualTransformation.None
-        } else {
-            PasswordVisualTransformation()
-        },
-        trailingIcon = {
-            ClosetlyTextButton(
-                text = if (visible) "Hide" else "Show",
-                onClick = onVisibilityChange,
-                enabled = enabled,
-            )
-        },
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Password,
-            imeAction = imeAction,
-        ),
-        enabled = enabled,
-        shape = MaterialTheme.shapes.medium,
-    )
-}
-
-@Composable
-private fun SessionAvailabilityMessage(sessionState: AuthSessionState) {
+internal fun SessionAvailabilityMessage(sessionState: AuthSessionState) {
     val message = when (sessionState) {
         AuthSessionState.Initializing -> "Restoring the saved session..."
         is AuthSessionState.Failure -> sessionState.message
@@ -272,11 +228,27 @@ private fun SessionAvailabilityMessage(sessionState: AuthSessionState) {
 }
 
 @Composable
-private fun FeedbackMessage(message: String?, isError: Boolean) {
+internal fun FeedbackMessage(message: String?, isError: Boolean) {
     if (message == null) return
     Text(
         text = message,
         color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
         style = MaterialTheme.typography.bodyMedium,
     )
+}
+
+@Preview(name = "Closetly Login", widthDp = 393, heightDp = 852)
+@Preview(name = "Closetly Login Dark", widthDp = 393, heightDp = 852, uiMode = 0x20)
+@Composable
+private fun LoginScreenPreview() {
+    ClosetlyTheme {
+        LoginScreen(
+            uiState = AuthUiState(sessionState = AuthSessionState.NotAuthenticated),
+            onLogin = { _, _ -> },
+            onRequestPasswordReset = {},
+            onClearMessages = {},
+            onRegister = {},
+            onBack = {},
+        )
+    }
 }

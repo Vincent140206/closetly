@@ -11,9 +11,18 @@ interface AuthRepository {
         email: String,
         password: String,
         displayName: String,
+        username: String,
     ): RegistrationResult
 
     suspend fun signIn(email: String, password: String)
+
+    suspend fun requestPasswordReset(email: String)
+
+    suspend fun openPasswordRecovery(code: String): String
+
+    suspend fun updateRecoveredPassword(password: String)
+
+    fun clearPasswordRecovery()
 
     suspend fun signOut()
 
@@ -34,10 +43,22 @@ class UnavailableAuthRepository(
         email: String,
         password: String,
         displayName: String,
+        username: String,
     ): RegistrationResult = throw IllegalStateException(reason)
 
     override suspend fun signIn(email: String, password: String): Unit =
         throw IllegalStateException(reason)
+
+    override suspend fun requestPasswordReset(email: String): Unit =
+        throw IllegalStateException(reason)
+
+    override suspend fun openPasswordRecovery(code: String): String =
+        throw IllegalStateException(reason)
+
+    override suspend fun updateRecoveredPassword(password: String): Unit =
+        throw IllegalStateException(reason)
+
+    override fun clearPasswordRecovery() = Unit
 
     override suspend fun signOut(): Unit = throw IllegalStateException(reason)
 

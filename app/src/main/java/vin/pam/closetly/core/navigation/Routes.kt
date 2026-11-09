@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 data object HomeRoute
 
 @Serializable
+data object OnboardingRoute
+
+@Serializable
 data object LoginRoute
 
 @Serializable
@@ -21,10 +24,21 @@ data object WardrobeRoute
 data object OutfitRoute
 
 @Serializable
+data class OutfitDetailRoute(val outfitId: String)
+
+@Serializable
+data class OutfitFormRoute(val outfitId: String? = null)
+
+@Serializable
 data object PlannerRoute
 
 @Serializable
 data object InspirationRoute
+
+@Serializable data class InspirationDetailRoute(val postId: String)
+@Serializable data object MyInspirationRoute
+@Serializable data class InspirationCollectionRoute(val collectionId: String)
+@Serializable data object ManageCollectionsRoute
 
 @Serializable
 data object WishlistRoute

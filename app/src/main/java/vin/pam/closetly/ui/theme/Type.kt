@@ -1,14 +1,34 @@
 package vin.pam.closetly.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import vin.pam.closetly.R
 
-private val ClosetlySans = FontFamily.SansSerif
+@OptIn(ExperimentalTextApi::class)
+private val ClosetlySans = FontFamily(
+    listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold).map { weight ->
+        Font(
+            resId = R.font.dm_sans,
+            weight = weight,
+            variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+        )
+    },
+)
+
+private val DefaultTypography = Typography()
 
 val Typography = Typography(
+    displayLarge = DefaultTypography.displayLarge.copy(fontFamily = ClosetlySans),
+    displayMedium = DefaultTypography.displayMedium.copy(fontFamily = ClosetlySans),
+    headlineLarge = DefaultTypography.headlineLarge.copy(fontFamily = ClosetlySans),
+    headlineSmall = DefaultTypography.headlineSmall.copy(fontFamily = ClosetlySans),
+    titleSmall = DefaultTypography.titleSmall.copy(fontFamily = ClosetlySans),
     displaySmall = TextStyle(
         fontFamily = ClosetlySans,
         fontWeight = FontWeight.Bold,
