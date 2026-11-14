@@ -71,6 +71,7 @@ class LocalWardrobeRepository(
                     color = valid.color, size = valid.size, style = valid.style,
                     imagePath = valid.imagePath, originalImagePath = valid.originalImagePath,
                     photoAdjustments = valid.photoAdjustments,
+                    originalCategory = valid.originalCategory,
                     createdAt = now, updatedAt = now,
                 )
                 commit(listOf(item) + items.value)
@@ -88,6 +89,7 @@ class LocalWardrobeRepository(
                 size = valid.size, style = valid.style, imagePath = valid.imagePath,
                 originalImagePath = valid.originalImagePath, updatedAt = clock(),
                 photoAdjustments = valid.photoAdjustments,
+                originalCategory = valid.originalCategory,
             )
         }
     }
