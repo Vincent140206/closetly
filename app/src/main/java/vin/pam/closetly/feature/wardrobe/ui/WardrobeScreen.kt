@@ -280,7 +280,7 @@ private fun ClothingCard(item: ClothingItem, onOpen: () -> Unit, onEdit: () -> U
             )
             Text(item.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(
-                listOf(item.category.label, item.style).filter { it.isNotBlank() }.joinToString(" · "),
+                listOf(item.categoryLabel, item.style).filter { it.isNotBlank() }.joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant,
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
