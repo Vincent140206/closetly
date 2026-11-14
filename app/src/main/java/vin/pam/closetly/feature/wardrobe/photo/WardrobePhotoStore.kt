@@ -7,10 +7,12 @@ import android.graphics.ColorSpace
 import android.graphics.Matrix
 import android.net.Uri
 import androidx.core.content.FileProvider
+import androidx.core.graphics.scale
 import androidx.core.net.toUri
 import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.io.FileOutputStream
+import java.io.ByteArrayOutputStream
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -80,6 +82,35 @@ class WardrobePhotoStore(private val context: Context, private val directory: Fi
         }
     }
 
+    /** Keep PNG transparency while fitting the verified Storage bucket limit of 5 MiB. */
+    suspend fun prepareUpload(path: String): ByteArray = withContext(Dispatchers.IO) {
+        val file = File(path).canonicalFile
+        require(file.toPath().startsWith(directory.canonicalFile.toPath()) && file.isFile) {
+            "Foto tidak tersedia di perangkat. Pilih ulang foto sebelum menyimpan."
+        }
+        var bitmap = decodeFile(file)
+        try {
+            var bytes = encodePng(bitmap)
+            while (bytes.size > MAX_UPLOAD_BYTES) {
+                val width = (bitmap.width * 0.8f).toInt().coerceAtLeast(1)
+                val height = (bitmap.height * 0.8f).toInt().coerceAtLeast(1)
+                check(width < bitmap.width || height < bitmap.height) { "Foto belum dapat diperkecil hingga 5 MB." }
+                val smaller = bitmap.scale(width, height)
+                if (smaller !== bitmap) bitmap.recycle()
+                bitmap = smaller
+                bytes = encodePng(bitmap)
+            }
+            bytes
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    private fun encodePng(bitmap: Bitmap): ByteArray = ByteArrayOutputStream().use {
+        check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) { "Foto gagal disiapkan untuk upload." }
+        it.toByteArray()
+    }
+
     private fun decodeFile(file: File): Bitmap {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(file.absolutePath, bounds)
@@ -119,5 +150,9 @@ class WardrobePhotoStore(private val context: Context, private val directory: Fi
             check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)) { "Foto gagal disimpan." }
             stream.fd.sync()
         }
+    }
+
+    companion object {
+        const val MAX_UPLOAD_BYTES = 5 * 1024 * 1024
     }
 }
