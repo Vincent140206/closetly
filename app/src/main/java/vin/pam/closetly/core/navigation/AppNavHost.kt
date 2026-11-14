@@ -29,6 +29,7 @@ import vin.pam.closetly.feature.auth.LoginScreen
 import vin.pam.closetly.feature.auth.RegisterScreen
 import vin.pam.closetly.feature.profile.ProfileScreen
 import vin.pam.closetly.feature.profile.ProfileViewModel
+import vin.pam.closetly.feature.planner.ui.PlannerScreen
 
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
@@ -226,7 +227,12 @@ fun AppNavHost(
                 ModulePlaceholderScreen(AppModule.Outfit, navController::popBackStack)
             }
             composable<PlannerRoute> {
-                ModulePlaceholderScreen(AppModule.Planner, navController::popBackStack)
+                PlannerScreen(
+                    supabase = container.supabaseClient,
+                    onHistoryClick = {
+                        navController.navigate(WearHistoryRoute)
+                    }
+                )
             }
             composable<InspirationRoute> {
                 ModulePlaceholderScreen(AppModule.Inspiration, navController::popBackStack)
