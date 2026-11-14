@@ -10,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -47,6 +48,12 @@ import vin.pam.closetly.feature.outfit.OutfitListViewModel
 import vin.pam.closetly.feature.outfit.ui.OutfitDetailScreen
 import vin.pam.closetly.feature.outfit.ui.OutfitFormScreen
 import vin.pam.closetly.feature.outfit.ui.OutfitScreen
+import vin.pam.closetly.feature.wardrobe.WardrobeGraph
+import vin.pam.closetly.feature.wardrobe.WardrobeViewModel
+import vin.pam.closetly.feature.wardrobe.WardrobeFormViewModel
+import vin.pam.closetly.feature.wardrobe.ui.WardrobeScreen
+import vin.pam.closetly.feature.wardrobe.ui.WardrobeDetailScreen
+import vin.pam.closetly.feature.wardrobe.ui.WardrobeFormDestination
 
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
@@ -81,6 +88,15 @@ fun AppNavHost(
     val selectedPrimaryDestination = primaryDestinationId(currentRoute)
     val authenticatedUser =
         (authUiState.sessionState as? AuthSessionState.Authenticated)?.user
+    val applicationContext = LocalContext.current.applicationContext
+    val wardrobeGraph = remember(authenticatedUser?.id, applicationContext) {
+        WardrobeGraph.forAccount(applicationContext, authenticatedUser?.id)
+    }
+    val wardrobeViewModel: WardrobeViewModel = viewModel(
+        key = "wardrobe-${authenticatedUser?.id ?: "development"}",
+        factory = WardrobeViewModel.factory(wardrobeGraph.repository) { OutfitGraph.repository.getOutfits().size },
+    )
+    val wardrobeState by wardrobeViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(authenticatedUser?.id) {
         profileViewModel.onSessionChanged(authenticatedUser?.id)
@@ -223,7 +239,50 @@ fun AppNavHost(
                 )
             }
             composable<WardrobeRoute> {
-                ModulePlaceholderScreen(AppModule.Wardrobe, navController::popBackStack)
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { wardrobeViewModel.refresh() }
+                WardrobeScreen(
+                    state = wardrobeState,
+                    onSearch = wardrobeViewModel::search,
+                    onCategory = wardrobeViewModel::selectCategory,
+                    onFilter = wardrobeViewModel::applyFilter,
+                    onCreate = { navController.navigate(WardrobeFormRoute()) },
+                    onOpenItem = { navController.navigate(WardrobeDetailRoute(it)) },
+                    onEditItem = { navController.navigate(WardrobeFormRoute(it)) },
+                    onFavorite = wardrobeViewModel::toggleFavorite,
+                    onWishlist = { navController.navigate(WishlistRoute) },
+                    onOutfits = { navController.navigateToPrimaryDestination(OutfitDestinationId) },
+                    onProfile = { navController.navigate(ProfileRoute) },
+                    onRetry = wardrobeViewModel::refresh,
+                )
+            }
+            composable<WardrobeDetailRoute> { entry ->
+                val id = entry.toRoute<WardrobeDetailRoute>().itemId
+                LaunchedEffect(wardrobeState.archivedItemId) {
+                    if (wardrobeState.archivedItemId == id) {
+                        wardrobeViewModel.consumeArchive()
+                        navController.popBackStack()
+                    }
+                }
+                WardrobeDetailScreen(
+                    item = wardrobeState.items.firstOrNull { it.id == id },
+                    isLoading = wardrobeState.isLoading,
+                    error = wardrobeState.errorMessage,
+                    onBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate(WardrobeFormRoute(id)) },
+                    onFavorite = wardrobeViewModel::toggleFavorite,
+                    onArchive = { wardrobeViewModel.archive(id) },
+                    onRestore = { wardrobeViewModel.restore(id) },
+                )
+            }
+            composable<WardrobeFormRoute> { entry ->
+                val id = entry.toRoute<WardrobeFormRoute>().itemId
+                val formViewModel: WardrobeFormViewModel = viewModel(
+                    key = "wardrobe-form-${authenticatedUser?.id ?: "development"}",
+                    factory = WardrobeFormViewModel.factory(
+                        wardrobeGraph.repository, wardrobeGraph.photoStore, wardrobeGraph.photoProcessor, id,
+                    ),
+                )
+                WardrobeFormDestination(formViewModel, onBack = { navController.popBackStack() })
             }
             composable<OutfitRoute> {
                 val outfitViewModel: OutfitListViewModel = viewModel(
