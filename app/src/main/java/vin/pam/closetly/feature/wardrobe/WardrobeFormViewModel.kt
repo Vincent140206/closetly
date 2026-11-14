@@ -183,6 +183,7 @@ class WardrobeFormViewModel(
                 val photo = photoStore.persist(editor.originalPath, editor.preview)
                 edit(state.value.draft.copy(
                     imagePath = photo.imagePath, originalImagePath = photo.originalPath,
+                    photoChanged = true,
                     photoAdjustments = PhotoAdjustments(
                         editor.balance.red, editor.balance.green, editor.balance.blue, editor.backgroundRemoved,
                     ),
@@ -198,7 +199,7 @@ class WardrobeFormViewModel(
     }
 
     fun removePhoto() = edit(state.value.draft.copy(
-        imagePath = null, originalImagePath = null, photoAdjustments = PhotoAdjustments(),
+        imagePath = null, originalImagePath = null, photoAdjustments = PhotoAdjustments(), photoChanged = true,
     ))
 
     fun save() {
