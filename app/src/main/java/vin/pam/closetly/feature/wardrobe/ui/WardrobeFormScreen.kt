@@ -192,21 +192,30 @@ private fun WardrobeFormScreen(
             }
             ClothingField(
                 "Nama pakaian *", draft.name, { onEdit(draft.copy(name = it)) }, enabled,
-                isError = state.attemptedSave && draft.name.trim().length !in 2..80,
+                isError = state.attemptedSave && draft.name.trim().length !in 1..120,
             )
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Kategori *", style = MaterialTheme.typography.titleMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     WardrobeCategory.entries.forEach { category ->
                         CategoryChip(category.label, draft.category == category, enabled = enabled) {
-                            onEdit(draft.copy(category = category))
+                            onEdit(draft.copy(
+                                category = category,
+                                originalCategory = if (category == draft.category) draft.originalCategory else null,
+                            ))
                         }
                     }
                 }
                 if (state.attemptedSave && draft.category == null) Text("Pilih kategori pakaian.", color = MaterialTheme.colorScheme.error)
             }
-            ClothingField("Warna", draft.color, { onEdit(draft.copy(color = it)) }, enabled)
-            ClothingField("Ukuran", draft.size, { onEdit(draft.copy(size = it)) }, enabled)
+            ClothingField(
+                "Warna *", draft.color, { onEdit(draft.copy(color = it)) }, enabled,
+                isError = state.attemptedSave && draft.color.trim().length !in 1..60,
+            )
+            ClothingField(
+                "Ukuran *", draft.size, { onEdit(draft.copy(size = it)) }, enabled,
+                isError = state.attemptedSave && draft.size.trim().length !in 1..40,
+            )
             ClothingField("Gaya", draft.style, { onEdit(draft.copy(style = it)) }, enabled)
             if (state.errorMessage != null) Text(state.errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             ClosetlyButton(
