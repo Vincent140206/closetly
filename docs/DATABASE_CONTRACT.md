@@ -2,7 +2,7 @@
 
 Dokumen ini menetapkan target logical schema minimal. Ini bukan bukti bahwa schema sudah terpasang dan bukan migration yang boleh langsung dijalankan.
 
-Pada 2 November 2026, introspeksi read-only melalui endpoint OpenAPI dicoba memakai publishable key lokal. Supabase menolak schema introspection karena endpoint tersebut membutuhkan secret key. Secret/service-role key tidak digunakan. Karena schema aktif belum terverifikasi, task standardisasi ini tidak membuat atau menjalankan migration SQL.
+Pada 2 November 2026, introspeksi read-only melalui endpoint OpenAPI dicoba memakai publishable key lokal dan ditolak. Pada 14 November 2026, pemilik project memberikan hasil inspeksi kolom, constraint, RLS `clothing_items`, bucket, dan policy Storage. Pemilik kemudian mengonfirmasi keberhasilan migration metadata Digital Wardrobe. Bagian Wardrobe di bawah mengikuti hasil tersebut; tabel fitur lain tetap berupa target logical schema yang perlu diverifikasi.
 
 Sebelum migration berikutnya, maintainer database harus membandingkan target ini dengan schema aktif melalui Dashboard/SQL Editor atau koneksi database berizin. Migration harus additive, mempertahankan data, dan tidak boleh melakukan `drop table`, truncate, atau destructive rewrite otomatis.
 
@@ -18,12 +18,18 @@ Sebelum migration berikutnya, maintainer database harus membandingkan target ini
 ### `clothing_items`
 
 - `id uuid primary key`, `user_id uuid not null`
-- `name`, `category`, `color`, `size` sebagai text
+- `name`, `category`, `color`, `size` sebagai text wajib; panjang setelah trim masing-masing 1–120, 1–60, 1–60, dan 1–40
 - `image_path text null`
-- `is_archived boolean not null default false`
+- `archived_at timestamptz null`; nilai non-null berarti diarsipkan
+- `style text not null default ''`
+- `is_favorite boolean not null default false`
+- `original_image_path text null`
+- `photo_adjustments jsonb not null default '{}'::jsonb`
 - `created_at`, `updated_at`
 
 Tidak ada kolom global worn status. Status pemakaian berada di `wear_history`.
+
+Empat kolom metadata ditambahkan oleh [`20261114010000_extend_clothing_items_for_wardrobe.sql`](../supabase/migrations/20261114010000_extend_clothing_items_for_wardrobe.sql). RLS aktif dengan policy `clothing_items_owner` untuk role authenticated, `USING` dan `WITH CHECK` memakai `user_id = auth.uid()`. Referensi komposit dari `outfit_items` memakai `ON DELETE RESTRICT`; aplikasi mengarsipkan pakaian tanpa hard delete.
 
 ### `outfits`
 
@@ -115,7 +121,7 @@ Nama/signature RPC belum dikunci sampai fungsi aktif di database diperiksa. Jang
 - Saat membuat Community post dari saved outfit, salin/render image ke bucket Community; jangan mengubah visibility object private.
 - Database menyimpan path, bukan signed URL.
 
-Nama final bucket Community dan policy aktif harus diverifikasi sebelum implementasi repository.
+Hasil inspeksi 14 November 2026: `closetly-images` private dan `community-images` public, keduanya membatasi file 5 MiB dengan MIME JPEG/PNG/WebP. Policy private bucket membatasi folder pertama ke UID pemilik; insert/update mengizinkan folder kedua `profile`, `wardrobe`, `outfit`, `inspiration`, atau `wishlist`, serta ekstensi jpg/jpeg/png/webp. Digital Wardrobe memakai `<uid>/wardrobe/<item-id>/<digest>-original.png` dan `-processed.png` serta download authenticated. Policy Community tidak diubah dalam integrasi ini.
 
 ## Checklist migration aman
 
