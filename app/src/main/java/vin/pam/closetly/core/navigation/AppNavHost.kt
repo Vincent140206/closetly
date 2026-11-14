@@ -29,6 +29,7 @@ import vin.pam.closetly.feature.auth.LoginScreen
 import vin.pam.closetly.feature.auth.RegisterScreen
 import vin.pam.closetly.feature.profile.ProfileScreen
 import vin.pam.closetly.feature.profile.ProfileViewModel
+import vin.pam.closetly.feature.wishlist.ui.WishlistDemoRoot
 
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
@@ -38,7 +39,7 @@ private const val CommunityDestinationId = "community"
 
 private val PrimaryBottomBarItems = listOf(
     ClosetlyBottomBarItem(HomeDestinationId, "Beranda", R.drawable.ic_closetly_home),
-    ClosetlyBottomBarItem(WardrobeDestinationId, "Lemari", R.drawable.ic_closetly_wardrobe),
+    ClosetlyBottomBarItem(WardrobeDestinationId, "Closet", R.drawable.ic_closetly_wardrobe),
     ClosetlyBottomBarItem(OutfitDestinationId, "Outfit", R.drawable.ic_closetly_outfit),
     ClosetlyBottomBarItem(PlannerDestinationId, "Planner", R.drawable.ic_closetly_planner),
     ClosetlyBottomBarItem(CommunityDestinationId, "Komunitas", R.drawable.ic_closetly_community),
@@ -165,7 +166,9 @@ fun AppNavHost(
                             AppModule.Inspiration -> navController.navigateToPrimaryDestination(
                                 CommunityDestinationId,
                             )
-                            AppModule.Wishlist -> navController.navigate(WishlistRoute)
+                            AppModule.Wishlist -> navController.navigateToPrimaryDestination(
+                                WardrobeDestinationId,
+                            )
                             AppModule.WearHistory -> navController.navigate(WearHistoryRoute)
                         }
                     },
@@ -219,9 +222,19 @@ fun AppNavHost(
                     onBack = navController::popBackStack,
                 )
             }
+
             composable<WardrobeRoute> {
-                ModulePlaceholderScreen(AppModule.Wardrobe, navController::popBackStack)
+                WishlistDemoRoot(
+                    modifier = Modifier.consumeWindowInsets(outerPadding),
+                    collectionContent = {
+                        ModulePlaceholderScreen(
+                            AppModule.Wardrobe,
+                            navController::popBackStack,
+                        )
+                    },
+                )
             }
+
             composable<OutfitRoute> {
                 ModulePlaceholderScreen(AppModule.Outfit, navController::popBackStack)
             }
