@@ -252,7 +252,7 @@ fun AppNavHost(
                     onWishlist = { navController.navigate(WishlistRoute) },
                     onOutfits = { navController.navigateToPrimaryDestination(OutfitDestinationId) },
                     onProfile = { navController.navigate(ProfileRoute) },
-                    onRetry = wardrobeViewModel::refresh,
+                    onRetry = { wardrobeViewModel.refresh(force = true) },
                 )
             }
             composable<WardrobeDetailRoute> { entry ->

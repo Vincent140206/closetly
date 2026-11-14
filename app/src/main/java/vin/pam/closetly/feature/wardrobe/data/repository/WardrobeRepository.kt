@@ -6,7 +6,8 @@ import vin.pam.closetly.feature.wardrobe.model.ClothingItem
 
 interface WardrobeRepository {
     val items: StateFlow<List<ClothingItem>>
-    suspend fun refresh()
+    /** Reuse a recent collection unless the user explicitly requests a reload. */
+    suspend fun refresh(force: Boolean = false)
     suspend fun getItem(id: String): ClothingItem
     /** A stable request ID makes a retried create idempotent. */
     suspend fun createItem(requestId: String, draft: ClothingDraft): ClothingItem

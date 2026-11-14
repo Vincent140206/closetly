@@ -4,6 +4,9 @@ import java.io.IOException
 import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToJsonElement
@@ -212,6 +215,56 @@ class SupabaseWardrobeRepositoryTest {
     private fun repository(remote: FakeRemote, files: FakeImages = FakeImages()) =
         SupabaseWardrobeRepository(remote, owner, files) { Instant.parse(timestamp) }
 
+    @Test
+    fun refresh_coalescesConcurrentReads_includingEmptyCollection_andExpiresOrForces() = runBlocking {
+        val remote = FakeRemote()
+        var elapsed = 0L
+        val repository = SupabaseWardrobeRepository(remote, owner, FakeImages(), elapsedMillis = { elapsed })
+        coroutineScope { (1..20).map { async { repository.refresh() } }.awaitAll() }
+        assertEquals(1, remote.pageCount)
+        elapsed = 59_999
+        repository.refresh()
+        assertEquals(1, remote.pageCount)
+        elapsed = 60_000
+        repository.refresh()
+        assertEquals(2, remote.pageCount)
+        repository.refresh(force = true)
+        assertEquals(3, remote.pageCount)
+    }
+
+    @Test
+    fun failedRefresh_retainsVisibleData_andNextAttemptRetriesDespiteCache() = runBlocking {
+        val remote = FakeRemote()
+        val item = record()
+        remote.rows[item.id] = item
+        val repository = repository(remote)
+        repository.refresh()
+        remote.pageError = IOException("Offline")
+        try {
+            repository.refresh(force = true)
+            throw AssertionError("Expected offline failure")
+        } catch (_: IllegalStateException) { }
+        assertEquals(item.id, repository.items.value.single().id)
+        remote.pageError = null
+        remote.rows[item.id] = item.copy(name = "Dari perangkat lain")
+        repository.refresh()
+        assertEquals(3, remote.pageCount)
+        assertEquals("Dari perangkat lain", repository.items.value.single().name)
+    }
+
+    @Test
+    fun successfulMutation_updatesCachedCollection_withoutAnotherListRequest() = runBlocking {
+        val remote = FakeRemote()
+        val item = record()
+        remote.rows[item.id] = item
+        val repository = repository(remote)
+        repository.refresh()
+        repository.setFavorite(item.id, true)
+        repository.refresh()
+        assertEquals(1, remote.pageCount)
+        assertTrue(repository.items.value.single().isFavorite)
+    }
+
     private class FakeImages : WardrobeImageFiles {
         private val cached = java.util.concurrent.ConcurrentHashMap<String, ByteArray>()
         override fun cachedPath(objectPath: String) = "cache/$objectPath"
@@ -229,6 +282,7 @@ class SupabaseWardrobeRepositoryTest {
         var insertCount = 0
         var uploadCount = 0
         var pageCount = 0
+        var pageError: Exception? = null
         var loseInsertResponse = false
         var failSecondUpload = false
         var afterUpload: (() -> Unit)? = null
@@ -240,6 +294,7 @@ class SupabaseWardrobeRepositoryTest {
         override suspend fun listPage(userId: String, afterId: String?, limit: Int): List<ClothingItemRecord> {
             requireOwner(userId)
             pageCount++
+            pageError?.let { throw it }
             return rows.values.filter { it.userId == userId && (afterId == null || it.id > afterId) }.sortedBy { it.id }.take(limit)
         }
         override suspend fun find(userId: String, id: String): ClothingItemRecord? {

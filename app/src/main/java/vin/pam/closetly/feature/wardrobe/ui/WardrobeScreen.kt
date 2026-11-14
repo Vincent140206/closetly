@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -169,6 +170,9 @@ fun WardrobeScreen(
                         modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium,
                     )
                     Text("${visible.size} pakaian", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    IconButton(onClick = onRetry, enabled = !state.isLoading) {
+                        Icon(Icons.Outlined.Refresh, "Muat ulang koleksi")
+                    }
                 }
             }
             if (state.errorMessage != null) {

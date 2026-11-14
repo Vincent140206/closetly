@@ -30,13 +30,18 @@ class SupabaseWardrobeRepository(
     private val remote: WardrobeRemoteDataSource,
     private val userId: String,
     private val images: WardrobeImageFiles,
+    private val elapsedMillis: () -> Long = { System.nanoTime() / 1_000_000 },
     private val now: () -> Instant = Instant::now,
 ) : WardrobeRepository {
     private val mutex = Mutex()
     private val state = MutableStateFlow<List<ClothingItem>>(emptyList())
     override val items = state.asStateFlow()
+    private var refreshedAt: Long? = null
 
-    override suspend fun refresh() = operation {
+    override suspend fun refresh(force: Boolean) = operation {
+        // The mutex also coalesces concurrent lifecycle refreshes into one successful fetch.
+        if (!force && refreshedAt?.let { elapsedMillis() - it in 0 until CACHE_TTL_MILLIS } == true) return@operation
+        refreshedAt = null
         val records = mutableListOf<ClothingItemRecord>()
         var after: String? = null
         do {
@@ -53,6 +58,7 @@ class SupabaseWardrobeRepository(
         }
         requireSession()
         state.value = hydrated.sortedByDescending { it.createdAt }
+        refreshedAt = elapsedMillis()
     }
 
     override suspend fun getItem(id: String): ClothingItem = operation {
@@ -216,6 +222,7 @@ class SupabaseWardrobeRepository(
     private fun requireSession() {
         if (remote.currentUserId() != userId) {
             state.value = emptyList()
+            refreshedAt = null
             error("Sesi pengguna berubah. Masuk kembali untuk mengakses koleksi.")
         }
     }
@@ -237,6 +244,7 @@ class SupabaseWardrobeRepository(
 
     companion object {
         private const val PAGE_SIZE = 200
+        private const val CACHE_TTL_MILLIS = 60_000L
         private const val MAX_IMAGE_BYTES = 5 * 1024 * 1024
     }
 }

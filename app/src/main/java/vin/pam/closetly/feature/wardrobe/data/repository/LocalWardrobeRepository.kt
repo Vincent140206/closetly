@@ -33,7 +33,7 @@ class LocalWardrobeRepository(
     @Serializable
     private data class Snapshot(val version: Int = 1, val items: List<ClothingItem>)
 
-    override suspend fun refresh() = withContext(Dispatchers.IO) {
+    override suspend fun refresh(force: Boolean) = withContext(Dispatchers.IO) {
         mutex.withLock {
             val snapshot = if (file.exists()) {
                 json.decodeFromString<Snapshot>(file.readText()).also {
