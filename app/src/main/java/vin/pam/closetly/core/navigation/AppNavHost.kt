@@ -10,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -136,7 +137,11 @@ fun AppNavHost(
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            modifier = Modifier.padding(outerPadding),
+            modifier = if (selectedPrimaryDestination == HomeDestinationId) {
+                Modifier.padding(top = outerPadding.calculateTopPadding())
+            } else {
+                Modifier.padding(outerPadding)
+            },
         ) {
             composable<OnboardingRoute> {
                 OnboardingScreen(
@@ -152,22 +157,11 @@ fun AppNavHost(
                 )
             }
             composable<HomeRoute> {
-                val statusMessage = when (val state = authUiState.sessionState) {
-                    AuthSessionState.Initializing -> "Restoring saved session..."
-                    is AuthSessionState.Authenticated ->
-                        "Signed in as ${state.user.email.ifBlank { "authenticated user" }}"
-                    AuthSessionState.NotAuthenticated ->
-                        "Development Home is available without login. Supabase profile data is not."
-                    is AuthSessionState.Failure -> state.message
-                    is AuthSessionState.Unavailable -> state.message
-                }
-                val canOpenAuthentication =
-                    authUiState.sessionState !is AuthSessionState.Initializing
-
                 HomeScreen(
-                    authStatus = statusMessage,
-                    authActionLabel = if (authenticatedUser == null) "Login or register" else "Open profile",
-                    isAuthActionEnabled = canOpenAuthentication,
+                    displayName = profileUiState.profile?.displayName?.takeIf { it.isNotBlank() }
+                        ?: authenticatedUser?.email?.substringBefore('@')?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.home_default_name),
+                    bottomContentPadding = outerPadding.calculateBottomPadding(),
                     onModuleClick = { module ->
                         when (module) {
                             AppModule.Wardrobe -> navController.navigateToPrimaryDestination(
@@ -187,14 +181,6 @@ fun AppNavHost(
                         }
                     },
                     onProfileClick = { navController.navigate(ProfileRoute) },
-                    onAuthClick = {
-                        if (authenticatedUser == null) {
-                            authViewModel.clearMessages()
-                            navController.navigate(LoginRoute)
-                        } else {
-                            navController.navigate(ProfileRoute)
-                        }
-                    },
                 )
             }
             composable<LoginRoute> {

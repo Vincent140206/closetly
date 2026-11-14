@@ -39,14 +39,20 @@ class AppShellNavigationTest {
 
     @Test
     fun unfinishedModules_openSharedPlaceholder_andNavigateBackHome() {
-        AppModule.entries.filterNot { it == AppModule.Outfit || it == AppModule.Inspiration }.forEach { module ->
-            scrollTo(module.title)
-            composeRule.onNodeWithText(module.title).assertIsDisplayed().performClick()
+        val homeActions = mapOf(
+            AppModule.Wardrobe to "Buka lemari",
+            AppModule.Planner to "Buat Rencana",
+            AppModule.Wishlist to "Fashion Wishlist",
+            AppModule.WearHistory to "Wear History",
+        )
+        homeActions.forEach { (module, action) ->
+            scrollTo(action)
+            composeRule.onNodeWithText(action).assertIsDisplayed().performClick()
             composeRule.onNodeWithText("Not implemented yet").assertIsDisplayed()
             composeRule.onNodeWithText("${module.title} is assigned to ${module.owner}.").assertIsDisplayed()
             composeRule.onNodeWithText("Back").performClick()
-            scrollTo(module.title)
-            composeRule.onNodeWithText(module.title).assertIsDisplayed()
+            scrollTo(action)
+            composeRule.onNodeWithText(action).assertIsDisplayed()
         }
     }
 
@@ -67,8 +73,23 @@ class AppShellNavigationTest {
         composeRule.onNodeWithText("Inspirasi").assertIsSelected()
 
         composeRule.onNodeWithText("Beranda").performClick()
-        composeRule.onNodeWithText("Your wardrobe,\nyour story.").assertIsDisplayed()
+        composeRule.onNodeWithText("Halo, Teman Closetly").assertIsDisplayed()
         composeRule.onNodeWithText("Beranda").assertIsSelected()
+    }
+
+    @Test
+    fun homeHero_opensMixAndMatch() {
+        composeRule.onNodeWithText("Coba sekarang").performClick()
+        composeRule.onNodeWithText("Mix & Match").assertIsDisplayed()
+        composeRule.onNodeWithText("Outfit").assertIsSelected()
+    }
+
+    @Test
+    fun homeCommunityLink_opensCommunity() {
+        scrollTo("Lihat Semua")
+        composeRule.onNodeWithText("Lihat Semua").performClick()
+        composeRule.onNodeWithText("Papan Inspirasi").assertIsDisplayed()
+        composeRule.onNodeWithText("Inspirasi").assertIsSelected()
     }
 
     @Test
