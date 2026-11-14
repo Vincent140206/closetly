@@ -8,9 +8,10 @@ enum class WardrobeCategory(val key: String, val label: String) {
     Bottom("bawahan", "Bawahan"),
     Shoes("sepatu", "Sepatu"),
     Accessory("aksesori", "Aksesori"),
+    Other("lainnya", "Lainnya"),
 }
 
-/** Domain model. Remote DTOs will follow the verified clothing_items schema. */
+/** UI model; Storage object paths and archived_at are mapped by the remote DTO. */
 @Serializable
 data class ClothingItem(
     val id: String,
@@ -26,7 +27,10 @@ data class ClothingItem(
     val isArchived: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
-)
+    val originalCategory: String? = null,
+) {
+    val categoryLabel: String get() = if (category == WardrobeCategory.Other) originalCategory ?: category.label else category.label
+}
 
 @Serializable
 data class ClothingDraft(
@@ -38,15 +42,20 @@ data class ClothingDraft(
     val imagePath: String? = null,
     val originalImagePath: String? = null,
     val photoAdjustments: PhotoAdjustments = PhotoAdjustments(),
+    val originalCategory: String? = null,
+    val photoChanged: Boolean = false,
 ) {
     fun validated(): ClothingDraft {
-        require(name.trim().length in 2..80) { "Nama pakaian harus berisi 2–80 karakter." }
+        require(name.trim().length in 1..120) { "Nama pakaian harus berisi 1–120 karakter." }
         require(category != null) { "Pilih kategori pakaian." }
-        require(color.trim().length <= 40) { "Warna maksimal 40 karakter." }
-        require(size.trim().length <= 20) { "Ukuran maksimal 20 karakter." }
+        require(color.trim().length in 1..60) { "Warna wajib diisi, maksimal 60 karakter." }
+        require(size.trim().length in 1..40) { "Ukuran wajib diisi, maksimal 40 karakter." }
         require(style.trim().length <= 40) { "Gaya maksimal 40 karakter." }
+        require(categoryKey.length in 1..60) { "Kategori maksimal 60 karakter." }
         return copy(name = name.trim(), color = color.trim(), size = size.trim(), style = style.trim())
     }
+
+    val categoryKey: String get() = if (category == WardrobeCategory.Other) originalCategory?.trim()?.takeIf { it.isNotEmpty() } ?: "lainnya" else category?.key.orEmpty()
 }
 
 @Serializable
@@ -58,7 +67,7 @@ data class PhotoAdjustments(
 )
 
 fun ClothingItem.toDraft() = ClothingDraft(
-    name, category, color, size, style, imagePath, originalImagePath, photoAdjustments,
+    name, category, color, size, style, imagePath, originalImagePath, photoAdjustments, originalCategory,
 )
 
 data class WardrobeFilter(
