@@ -47,7 +47,8 @@ class WardrobePhotoTest {
 
     @Test
     fun uploadPreparation_fitsBucketLimit_andRetainsTransparency() = runBlocking {
-        val directory = File(context.cacheDir, "wardrobe-test/${UUID.randomUUID()}").apply { mkdirs() }
+        // Android may evict cache files immediately on a device with little free storage.
+        val directory = File(context.filesDir, "wardrobe-upload-test/${UUID.randomUUID()}").apply { mkdirs() }
         val store = WardrobePhotoStore(context, File(directory, "images"))
         val side = 1536
         val random = java.util.Random(42)
@@ -55,19 +56,23 @@ class WardrobePhotoTest {
         // Broad transparent and opaque areas survive any resize needed for the bucket limit.
         for (y in 0 until 64) for (x in 0 until 64) pixels[y * side + x] = 0
         val bitmap = Bitmap.createBitmap(pixels, side, side, Bitmap.Config.ARGB_8888)
-        val input = File(directory, "source.png")
-        input.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
-        assertTrue("Fixture must exercise resizing", input.length() > WardrobePhotoStore.MAX_UPLOAD_BYTES)
-        val saved = store.persist(input.absolutePath, bitmap)
-        val bytes = store.prepareUpload(saved.imagePath)
-        assertTrue(bytes.size <= WardrobePhotoStore.MAX_UPLOAD_BYTES)
-        assertEquals(0x89, bytes[0].toInt() and 255)
-        val result = requireNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
-        assertTrue(result.width < side)
-        assertEquals(0, result.getPixel(1, 1) ushr 24)
-        assertEquals(255, result.getPixel(result.width / 2, result.height / 2) ushr 24)
-        bitmap.recycle()
-        result.recycle()
+        try {
+            val input = File(directory, "source.png")
+            input.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            assertTrue("Fixture must exercise resizing", input.length() > WardrobePhotoStore.MAX_UPLOAD_BYTES)
+            val saved = store.persist(input.absolutePath, bitmap)
+            val bytes = store.prepareUpload(saved.imagePath)
+            assertTrue(bytes.size <= WardrobePhotoStore.MAX_UPLOAD_BYTES)
+            assertEquals(0x89, bytes[0].toInt() and 255)
+            val result = requireNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
+            assertTrue(result.width < side)
+            assertEquals(0, result.getPixel(1, 1) ushr 24)
+            assertEquals(255, result.getPixel(result.width / 2, result.height / 2) ushr 24)
+            result.recycle()
+        } finally {
+            bitmap.recycle()
+            directory.deleteRecursively()
+        }
         Unit
     }
 

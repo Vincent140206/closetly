@@ -24,6 +24,7 @@ data class WardrobeFormUiState(
     val draft: ClothingDraft = ClothingDraft(),
     val isEditing: Boolean = false,
     val isLoading: Boolean = false,
+    val loadFailed: Boolean = false,
     val isSaving: Boolean = false,
     val isImporting: Boolean = false,
     val attemptedSave: Boolean = false,

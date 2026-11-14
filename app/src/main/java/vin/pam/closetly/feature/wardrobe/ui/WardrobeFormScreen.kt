@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,6 +54,7 @@ import vin.pam.closetly.feature.wardrobe.WardrobeFormViewModel
 import vin.pam.closetly.feature.wardrobe.model.ClothingDraft
 import vin.pam.closetly.feature.wardrobe.model.WardrobeCategory
 import vin.pam.closetly.feature.wardrobe.ui.components.WardrobePhoto
+import vin.pam.closetly.ui.theme.ClosetlyTheme
 
 @Composable
 fun WardrobeFormDestination(viewModel: WardrobeFormViewModel, onBack: () -> Unit) {
@@ -63,6 +65,7 @@ fun WardrobeFormDestination(viewModel: WardrobeFormViewModel, onBack: () -> Unit
         onCreateCameraUri = viewModel::createCameraUri, onPhoto = viewModel::importPhoto,
         onPhotoError = viewModel::reportPhotoError, onEditPhoto = viewModel::openPhotoEditor,
         onRemovePhoto = viewModel::removePhoto,
+        onRetry = viewModel::loadItem,
     )
     state.photoEditor?.let { editor ->
         WardrobePhotoEditor(
@@ -84,11 +87,12 @@ private fun WardrobeFormScreen(
     onPhotoError: (String) -> Unit,
     onEditPhoto: () -> Unit,
     onRemovePhoto: () -> Unit,
+    onRetry: () -> Unit,
 ) {
     var pendingCameraUri by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
     val draft = state.draft
-    val enabled = !state.isLoading && !state.isSaving && !state.isImporting
+    val enabled = !state.isLoading && !state.loadFailed && !state.isSaving && !state.isImporting
     val focus = LocalFocusManager.current
     val requestBack = {
         if (!state.isSaving) {
@@ -122,6 +126,11 @@ private fun WardrobeFormScreen(
         ) {
             Text("* Wajib diisi. Informasi lain bisa ditambahkan nanti.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (state.isLoading) CircularProgressIndicator()
+            if (state.loadFailed) {
+                Text(state.errorMessage ?: "Pakaian gagal dimuat.", color = MaterialTheme.colorScheme.error)
+                ClosetlyButton("Coba muat lagi", onRetry, Modifier.fillMaxWidth())
+                return@Column
+            }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Foto pakaian · Opsional", style = MaterialTheme.typography.titleMedium)
                 if (draft.imagePath != null) {
@@ -159,6 +168,8 @@ private fun WardrobeFormScreen(
                                 gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                             } catch (_: ActivityNotFoundException) {
                                 onPhotoError("Pemilih foto tidak tersedia di perangkat ini.")
+                            } catch (_: Exception) {
+                                onPhotoError("Galeri belum dapat dibuka. Periksa izin foto lalu coba lagi.")
                             }
                         },
                     ) {
@@ -175,9 +186,9 @@ private fun WardrobeFormScreen(
                             } catch (_: ActivityNotFoundException) {
                                 pendingCameraUri = null
                                 onPhotoError("Aplikasi kamera tidak tersedia di perangkat ini.")
-                            } catch (error: Exception) {
+                            } catch (_: Exception) {
                                 pendingCameraUri = null
-                                onPhotoError(error.message ?: "Kamera belum dapat dibuka.")
+                                onPhotoError("Kamera belum dapat dibuka. Periksa izin dan ruang penyimpanan lalu coba lagi.")
                             }
                         },
                     ) {
@@ -225,13 +236,16 @@ private fun WardrobeFormScreen(
             )
         }
     }
-    if (confirmDiscard) AlertDialog(
-        onDismissRequest = { confirmDiscard = false },
-        title = { Text("Keluar tanpa menyimpan?") },
-        text = { Text("Perubahan pakaian ini belum disimpan ke koleksi.") },
-        confirmButton = { TextButton(onClick = onBack) { Text("Keluar") } },
-        dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text("Lanjut edit") } },
-    )
+    if (confirmDiscard) ClosetlyTheme(darkTheme = false) {
+        AlertDialog(
+            containerColor = Color.White,
+            onDismissRequest = { confirmDiscard = false },
+            title = { Text("Keluar tanpa menyimpan?") },
+            text = { Text("Perubahan pakaian ini belum disimpan ke koleksi.") },
+            confirmButton = { TextButton(onClick = onBack) { Text("Keluar") } },
+            dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text("Lanjut edit") } },
+        )
+    }
 }
 
 @Composable

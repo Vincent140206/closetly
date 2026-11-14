@@ -12,6 +12,16 @@ Foto kamera/galeri, kalibrasi white balance, dan penghapusan background tetap di
 
 Menghapus pakaian berarti mengarsipkan, sehingga referensi outfit dan foto tetap ada. Object foto lama juga dipertahankan; pembersihan object yang tidak lagi direferensikan belum diimplementasikan. Upload yang terputus setelah satu file tersimpan dapat meninggalkan object tanpa referensi jika pengguna membatalkan retry.
 
+## Pembacaan dan pemulihan error
+
+Koleksi mulai dimuat saat halaman Lemari aktif, tanpa request tambahan dari inisialisasi ViewModel. Hasil list disimpan di memori selama 60 detik, termasuk hasil kosong. Refresh yang bertumpuk memakai hasil pemuatan pertama yang berhasil. Search dan filter bekerja pada data yang sudah dimuat. Tombol muat ulang dan tombol Coba lagi melewati cache. Perubahan dari perangkat lain terlihat setelah refresh saat cache kedaluwarsa, atau langsung setelah muat ulang manual; tidak ada langganan realtime.
+
+Response tambah/edit/favorit/arsip langsung memperbarui daftar di memori. Foto yang sudah diunduh memakai cache file private. Jika refresh gagal, data yang sudah tampil tetap tersedia dan percobaan berikutnya tetap dapat mengambil data lagi. Menekan aksi pakaian yang sama berulang kali selama proses tidak menambah antrean write.
+
+Setiap request memiliki batas waktu: 30 detik untuk tabel, 90 detik upload, dan 60 detik download foto. Error jaringan, sesi, izin, konflik, batas ukuran, rate limit, response yang tidak dapat dibaca, dan gangguan server diterjemahkan ke pesan Indonesia tanpa detail request mentah. Retry dilakukan oleh pengguna; tidak ada loop retry otomatis. Pembatalan saat meninggalkan layar tetap membatalkan coroutine.
+
+Form edit yang gagal dimuat menampilkan Coba muat lagi dan memblokir simpan. Gagal menyimpan mempertahankan draft agar bisa dicoba lagi. Kegagalan pemrosesan foto mengembalikan kontrol editor sehingga pengguna bisa mencoba lagi atau memakai foto asli. Modal arsip, konfirmasi keluar, editor foto, dan bottom sheet filter memakai latar putih dengan teks tema terang, termasuk saat aplikasi memakai dark mode.
+
 ## Pengujian dengan akun project
 
 1. Jalankan build dengan konfigurasi project yang sama, lalu login akun A. Profil akun harus tersedia karena `clothing_items.user_id` mereferensikan `profiles.id`.
@@ -28,6 +38,8 @@ Pengujian unit memakai remote palsu untuk skenario retry, pagination, dan pergan
 ## Hasil verifikasi implementasi
 
 Pada 14 November 2026, build debug dan APK tes berhasil, 37 unit test lulus, dan enam tes emulator Wardrobe lulus. Tes mencakup alur CRUD melalui repository lokal pengujian, impor foto kamera dengan orientasi EXIF, segmentasi background, serta resize PNG di bawah 5 MiB dengan alpha tetap ada. Tes resize dijalankan ulang pada APK akhir dan lulus. Lint tidak melaporkan error; 19 warning terkait konfigurasi/dependency/resource yang sudah ada tetap tercatat.
+
+Sesudah perbaikan cache dan penanganan error, 43 unit test lulus. Tes membuktikan 20 pemanggilan refresh bersamaan menghasilkan satu pemuatan, cache daftar kosong tetap berlaku, expiry/force reload mengambil data baru, dan refresh gagal mempertahankan daftar serta dapat diulang. Delapan skenario emulator Wardrobe telah lulus, termasuk blokir simpan saat detail gagal dimuat, retry tanpa kehilangan draft, dan pencegahan write favorit berulang. Alur koleksi diuji kembali dengan dark theme; screenshot filter, arsip, dan konfirmasi keluar diperiksa dan latarnya putih. Fixture PNG serta screenshot tes memakai direktori files agar tidak terhapus oleh cache eviction Android pada emulator yang penyimpanannya menipis. Build dan lint akhir lulus tanpa error baru.
 
 Probe read-only dengan publishable key tanpa sesi menerima HTTP 401, kode PostgreSQL `42501` (`permission denied for table clothing_items`). Ini mengonfirmasi akses tabel anonymous ditolak, tetapi belum memverifikasi grant authenticated, kolom migration melalui endpoint, CRUD akun login, atau isolasi RLS dua akun. Tidak ada data project yang ditambah atau diubah selama probe ini.
 
