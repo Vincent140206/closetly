@@ -37,7 +37,9 @@ class WardrobeFormViewModel(
     private val itemId: String?,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
-    private val restored = savedState.get<String>("draft")?.let { Json.decodeFromString<ClothingDraft>(it) }
+    private val restored = savedState.get<String>("draft")?.let {
+        runCatching { Json.decodeFromString<ClothingDraft>(it) }.getOrNull()
+    }
     private val state = MutableStateFlow(WardrobeFormUiState(
         draft = restored ?: ClothingDraft(), isEditing = itemId != null,
         isLoading = itemId != null, hasChanges = restored != null,
@@ -46,17 +48,25 @@ class WardrobeFormViewModel(
     private val requestId = savedState.get<String>("requestId")
         ?: UUID.randomUUID().toString().also { savedState["requestId"] = it }
     private var processJob: Job? = null
+    private var loadJob: Job? = null
     private var mask: FloatArray? = null
 
     init {
-        if (itemId != null) viewModelScope.launch {
+        if (itemId != null) loadItem()
+    }
+
+    fun loadItem() {
+        val id = itemId ?: return
+        if (loadJob?.isActive == true || state.value.isSaving) return
+        state.update { it.copy(isLoading = true, loadFailed = false, errorMessage = null) }
+        loadJob = viewModelScope.launch {
             try {
-                val item = repository.getItem(itemId)
+                val item = repository.getItem(id)
                 state.update { it.copy(draft = restored ?: item.toDraft()) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
-                state.update { it.copy(errorMessage = error.message ?: "Pakaian gagal dimuat.") }
+                state.update { it.copy(loadFailed = true, errorMessage = error.message ?: "Pakaian gagal dimuat.") }
             } finally {
                 state.update { it.copy(isLoading = false) }
             }
@@ -64,7 +74,7 @@ class WardrobeFormViewModel(
     }
 
     fun edit(draft: ClothingDraft) {
-        if (state.value.isSaving) return
+        if (state.value.isSaving || state.value.isLoading || state.value.loadFailed) return
         savedState["draft"] = Json.encodeToString(draft)
         state.update { it.copy(draft = draft, hasChanges = true, errorMessage = null) }
     }
@@ -73,7 +83,7 @@ class WardrobeFormViewModel(
     fun reportPhotoError(message: String) = state.update { it.copy(errorMessage = message) }
 
     fun importPhoto(uri: Uri) {
-        if (state.value.isSaving || state.value.isImporting) return
+        if (state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting) return
         viewModelScope.launch {
             state.update { it.copy(isImporting = true, errorMessage = null) }
             try {
@@ -85,7 +95,7 @@ class WardrobeFormViewModel(
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
-                reportPhotoError(error.message ?: "Foto tidak dapat dibuka.")
+                reportPhotoError(photoErrorMessage(error, "Foto tidak dapat dibuka. Pilih ulang dari galeri atau kamera."))
             } finally {
                 state.update { it.copy(isImporting = false) }
             }
@@ -93,6 +103,7 @@ class WardrobeFormViewModel(
     }
 
     fun openPhotoEditor() {
+        if (state.value.isSaving || state.value.isImporting) return
         val draft = state.value.draft
         val original = draft.originalImagePath ?: draft.imagePath ?: return
         viewModelScope.launch {
@@ -111,7 +122,7 @@ class WardrobeFormViewModel(
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
-                reportPhotoError(error.message ?: "Foto tidak dapat dibuka.")
+                reportPhotoError(photoErrorMessage(error, "Foto tidak dapat dibuka. Pilih ulang dari galeri atau kamera."))
             } finally {
                 state.update { it.copy(isImporting = false) }
             }
@@ -162,7 +173,7 @@ class WardrobeFormViewModel(
                 throw cancellation
             } catch (error: Exception) {
                 state.update { it.copy(photoEditor = editor.copy(
-                    errorMessage = "${error.message ?: "Foto belum berhasil diproses."} Coba lagi untuk menghapus background.",
+                    errorMessage = "Foto belum berhasil diproses. Periksa koneksi dan coba hapus background lagi, atau gunakan foto asli.",
                 )) }
             }
         }
@@ -183,6 +194,7 @@ class WardrobeFormViewModel(
                 val photo = photoStore.persist(editor.originalPath, editor.preview)
                 edit(state.value.draft.copy(
                     imagePath = photo.imagePath, originalImagePath = photo.originalPath,
+                    photoChanged = true,
                     photoAdjustments = PhotoAdjustments(
                         editor.balance.red, editor.balance.green, editor.balance.blue, editor.backgroundRemoved,
                     ),
@@ -192,17 +204,17 @@ class WardrobeFormViewModel(
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
-                state.update { it.copy(photoEditor = editor.copy(errorMessage = error.message ?: "Foto gagal disimpan.")) }
+                state.update { it.copy(photoEditor = editor.copy(errorMessage = photoErrorMessage(error, "Foto gagal disimpan. Periksa ruang penyimpanan lalu coba lagi."))) }
             }
         }
     }
 
     fun removePhoto() = edit(state.value.draft.copy(
-        imagePath = null, originalImagePath = null, photoAdjustments = PhotoAdjustments(),
+        imagePath = null, originalImagePath = null, photoAdjustments = PhotoAdjustments(), photoChanged = true,
     ))
 
     fun save() {
-        if (state.value.isSaving || state.value.isLoading || state.value.isImporting || state.value.photoEditor != null) return
+        if (state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting || state.value.photoEditor != null) return
         state.update { it.copy(attemptedSave = true) }
         val draft = try {
             state.value.draft.validated()
@@ -225,6 +237,9 @@ class WardrobeFormViewModel(
             }
         }
     }
+
+    private fun photoErrorMessage(error: Exception, fallback: String): String =
+        if (error is IllegalArgumentException) error.message ?: fallback else fallback
 
     private fun neutralSample(bitmap: Bitmap, x: Int, y: Int): IntArray {
         var red = 0

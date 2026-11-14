@@ -9,6 +9,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
@@ -39,7 +40,7 @@ class WardrobeFlowTest {
     fun showCollection() {
         val container = AppContainer(AppConfig(null, null))
         composeRule.setContent {
-            ClosetlyTheme(darkTheme = false) {
+            ClosetlyTheme(darkTheme = InstrumentationRegistry.getArguments().getString("wardrobeDarkTheme") == "true") {
                 AppNavHost(navController = rememberNavController(), container = container)
             }
         }
@@ -54,7 +55,8 @@ class WardrobeFlowTest {
         composeRule.onNodeWithText("+ Tambah Pakaian").performClick()
         field("Nama pakaian *").performTextInput(name)
         composeRule.onNodeWithText("Atasan").performScrollTo().performClick()
-        field("Warna").performScrollTo().performTextInput("Biru")
+        field("Warna *").performScrollTo().performTextInput("Biru")
+        field("Ukuran *").performScrollTo().performTextInput("M")
         closeSoftKeyboard()
         composeRule.onNodeWithText("Simpan ke Koleksi").performScrollTo().performClick()
         waitForText("Koleksi Lemari Saya")
@@ -69,6 +71,7 @@ class WardrobeFlowTest {
         composeRule.onNodeWithText("Simpan perubahan").performScrollTo().performClick()
         waitForText(edited)
         composeRule.onNodeWithText("Hapus pakaian").performScrollTo().performClick()
+        capture("wardrobe-archive-dialog.png")
         composeRule.onNodeWithText("Hapus").performClick()
         waitForText("Koleksi Lemari Saya")
 
@@ -77,6 +80,7 @@ class WardrobeFlowTest {
         composeRule.onNode(hasSetTextAction()).performTextReplacement(edited)
         closeSoftKeyboard()
         composeRule.onNodeWithContentDescription("Filter koleksi").performClick()
+        capture("wardrobe-filter.png")
         composeRule.onNodeWithText("Tampilkan arsip").performClick()
         composeRule.onNodeWithText("Terapkan filter").performClick()
         findClothing(edited)
@@ -99,7 +103,11 @@ class WardrobeFlowTest {
         capture("wardrobe-collection.png")
         composeRule.onNodeWithText("+ Tambah Pakaian").performClick()
         capture("wardrobe-form.png")
+        field("Nama pakaian *").performTextInput("Draft belum disimpan")
+        closeSoftKeyboard()
         composeRule.onNodeWithContentDescription("Kembali ke koleksi").performClick()
+        capture("wardrobe-discard-dialog.png")
+        composeRule.onNodeWithText("Keluar").performClick()
         collectionScroll("Cari nama pakaian")
         composeRule.onNode(hasSetTextAction()).performTextReplacement("pakaian-yang-tidak-ada")
         closeSoftKeyboard()
@@ -129,7 +137,10 @@ class WardrobeFlowTest {
 
     private fun capture(name: String) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val bitmap = composeRule.onRoot().captureToImage().asAndroidBitmap()
-        File(context.cacheDir, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        val dialogs = composeRule.onAllNodes(isDialog())
+        val surface = if (dialogs.fetchSemanticsNodes().isNotEmpty()) dialogs[0] else composeRule.onRoot()
+        val bitmap = surface.captureToImage().asAndroidBitmap()
+        val directory = File(context.filesDir, "wardrobe-qa").apply { mkdirs() }
+        File(directory, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 }

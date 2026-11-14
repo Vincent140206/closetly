@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
@@ -30,6 +31,7 @@ import vin.pam.closetly.core.ui.components.ClosetlyScaffold
 import vin.pam.closetly.core.ui.components.LoadingState
 import vin.pam.closetly.feature.wardrobe.model.ClothingItem
 import vin.pam.closetly.feature.wardrobe.ui.components.WardrobePhoto
+import vin.pam.closetly.ui.theme.ClosetlyTheme
 
 @Composable
 fun WardrobeDetailScreen(
@@ -54,7 +56,7 @@ fun WardrobeDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 WardrobePhoto(item.imagePath, item.name, Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(24.dp)))
-                Text(item.category.label + if (item.isArchived) " · Diarsipkan" else "", style = MaterialTheme.typography.labelLarge)
+                Text(item.categoryLabel + if (item.isArchived) " · Diarsipkan" else "", style = MaterialTheme.typography.labelLarge)
                 Text(item.name, style = MaterialTheme.typography.headlineMedium)
                 if (item.color.isNotBlank()) DetailField("Warna", item.color)
                 if (item.size.isNotBlank()) DetailField("Ukuran", item.size)
@@ -81,13 +83,16 @@ fun WardrobeDetailScreen(
             }
         }
     }
-    if (confirmArchive) AlertDialog(
-        onDismissRequest = { confirmArchive = false },
-        title = { Text("Hapus pakaian dari koleksi?") },
-        text = { Text("Pakaian dipindahkan ke arsip agar referensi outfit tetap tersimpan. Kamu bisa memulihkannya melalui filter Arsip.") },
-        confirmButton = { TextButton(onClick = { confirmArchive = false; onArchive() }) { Text("Hapus", color = MaterialTheme.colorScheme.error) } },
-        dismissButton = { TextButton(onClick = { confirmArchive = false }) { Text("Batal") } },
-    )
+    if (confirmArchive) ClosetlyTheme(darkTheme = false) {
+        AlertDialog(
+            containerColor = Color.White,
+            onDismissRequest = { confirmArchive = false },
+            title = { Text("Hapus pakaian dari koleksi?") },
+            text = { Text("Pakaian dipindahkan ke arsip agar referensi outfit tetap tersimpan. Kamu bisa memulihkannya melalui filter Arsip.") },
+            confirmButton = { TextButton(onClick = { confirmArchive = false; onArchive() }) { Text("Hapus", color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { confirmArchive = false }) { Text("Batal") } },
+        )
+    }
 }
 
 @Composable

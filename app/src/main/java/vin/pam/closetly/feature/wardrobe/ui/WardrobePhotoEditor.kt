@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -43,6 +44,7 @@ import androidx.compose.ui.window.DialogProperties
 import kotlin.math.min
 import vin.pam.closetly.core.ui.components.ClosetlyButton
 import vin.pam.closetly.feature.wardrobe.photo.WhiteBalance
+import vin.pam.closetly.ui.theme.ClosetlyTheme
 
 @Composable
 internal fun WardrobePhotoEditor(
@@ -62,83 +64,85 @@ internal fun WardrobePhotoEditor(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Column(Modifier.safeDrawingPadding()) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Siapkan foto", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-                    IconButton(onClick = onClose) { Icon(Icons.Outlined.Close, "Tutup pengaturan foto") }
-                }
-                Column(
-                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CategoryChip("Asli", showOriginal || state.isPickingNeutral) { showOriginal = true }
-                        CategoryChip("Hasil", !showOriginal && !state.isPickingNeutral) { showOriginal = false }
+        ClosetlyTheme(darkTheme = false) {
+            Surface(Modifier.fillMaxSize(), color = Color.White) {
+                Column(Modifier.safeDrawingPadding()) {
+                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Siapkan foto", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                        IconButton(onClick = onClose) { Icon(Icons.Outlined.Close, "Tutup pengaturan foto") }
                     }
-                    Box(
-                        Modifier.fillMaxWidth().height(300.dp).drawBehind {
-                            drawRect(background)
-                            val side = 12.dp.toPx()
-                            for (row in 0..(size.height / side).toInt()) {
-                                for (column in 0..(size.width / side).toInt()) {
-                                    if ((row + column) % 2 == 0) drawRect(
-                                        square, Offset(column * side, row * side), Size(side, side),
-                                    )
-                                }
-                            }
-                        }.pointerInput(state.original, state.isPickingNeutral, state.isProcessing) {
-                            detectTapGestures { point ->
-                                if (state.isPickingNeutral && !state.isProcessing) {
-                                    val scale = min(size.width.toFloat() / state.original.width, size.height.toFloat() / state.original.height)
-                                    val left = (size.width - state.original.width * scale) / 2f
-                                    val top = (size.height - state.original.height * scale) / 2f
-                                    val x = (point.x - left) / scale
-                                    val y = (point.y - top) / scale
-                                    if (x >= 0 && y >= 0 && x < state.original.width && y < state.original.height) {
-                                        showOriginal = false
-                                        onNeutralSelected(x.toInt(), y.toInt())
+                    Column(
+                        modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CategoryChip("Asli", showOriginal || state.isPickingNeutral) { showOriginal = true }
+                            CategoryChip("Hasil", !showOriginal && !state.isPickingNeutral) { showOriginal = false }
+                        }
+                        Box(
+                            Modifier.fillMaxWidth().height(300.dp).drawBehind {
+                                drawRect(background)
+                                val side = 12.dp.toPx()
+                                for (row in 0..(size.height / side).toInt()) {
+                                    for (column in 0..(size.width / side).toInt()) {
+                                        if ((row + column) % 2 == 0) drawRect(
+                                            square, Offset(column * side, row * side), Size(side, side),
+                                        )
                                     }
                                 }
-                            }
-                        },
-                    ) {
-                        Image(
-                            bitmap.asImageBitmap(), "Pratinjau foto pakaian",
-                            modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit,
-                        )
-                    }
-                    if (state.isProcessing) {
-                        CircularProgressIndicator()
-                        Text("Menyiapkan model dan memproses foto…", style = MaterialTheme.typography.bodyMedium)
-                        Text("Penggunaan pertama penghapus background memerlukan internet untuk mengunduh model.", style = MaterialTheme.typography.bodySmall)
-                    }
-                    Text("Kalibrasi warna", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        if (state.isPickingNeutral) "Ketuk area putih atau abu netral pada foto asli."
-                        else "Pilih kartu abu atau area putih netral yang terkena cahaya yang sama dengan pakaian untuk mengoreksi bias warna.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = onPickNeutral, enabled = !state.isProcessing) {
-                            Text(if (state.isPickingNeutral) "Batal pilih titik" else "Pilih titik netral")
+                            }.pointerInput(state.original, state.isPickingNeutral, state.isProcessing) {
+                                detectTapGestures { point ->
+                                    if (state.isPickingNeutral && !state.isProcessing) {
+                                        val scale = min(size.width.toFloat() / state.original.width, size.height.toFloat() / state.original.height)
+                                        val left = (size.width - state.original.width * scale) / 2f
+                                        val top = (size.height - state.original.height * scale) / 2f
+                                        val x = (point.x - left) / scale
+                                        val y = (point.y - top) / scale
+                                        if (x >= 0 && y >= 0 && x < state.original.width && y < state.original.height) {
+                                            showOriginal = false
+                                            onNeutralSelected(x.toInt(), y.toInt())
+                                        }
+                                    }
+                                }
+                            },
+                        ) {
+                            Image(
+                                bitmap.asImageBitmap(), "Pratinjau foto pakaian",
+                                modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit,
+                            )
                         }
-                        TextButton(onClick = onResetCalibration, enabled = !state.isProcessing) { Text("Reset warna") }
+                        if (state.isProcessing) {
+                            CircularProgressIndicator()
+                            Text("Menyiapkan model dan memproses foto…", style = MaterialTheme.typography.bodyMedium)
+                            Text("Penggunaan pertama penghapus background memerlukan internet untuk mengunduh model.", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Text("Kalibrasi warna", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (state.isPickingNeutral) "Ketuk area putih atau abu netral pada foto asli."
+                            else "Pilih kartu abu atau area putih netral yang terkena cahaya yang sama dengan pakaian untuk mengoreksi bias warna.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = onPickNeutral, enabled = !state.isProcessing) {
+                                Text(if (state.isPickingNeutral) "Batal pilih titik" else "Pilih titik netral")
+                            }
+                            TextButton(onClick = onResetCalibration, enabled = !state.isProcessing) { Text("Reset warna") }
+                        }
+                        Text(
+                            if (state.balance != WhiteBalance()) "Kalibrasi warna diterapkan" else "Warna asli",
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                        OutlinedButton(onClick = onToggleBackground, enabled = !state.isProcessing, modifier = Modifier.fillMaxWidth()) {
+                            Text(if (state.backgroundRemoved) "Pulihkan background" else "Hapus background")
+                        }
+                        if (state.backgroundRemoved) Text("Background transparan", style = MaterialTheme.typography.labelMedium)
+                        state.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                     }
-                    Text(
-                        if (state.balance != WhiteBalance()) "Kalibrasi warna diterapkan" else "Warna asli",
-                        style = MaterialTheme.typography.labelMedium,
+                    ClosetlyButton(
+                        "Gunakan foto", onUse,
+                        modifier = Modifier.fillMaxWidth().padding(24.dp), enabled = !state.isProcessing,
                     )
-                    OutlinedButton(onClick = onToggleBackground, enabled = !state.isProcessing, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (state.backgroundRemoved) "Pulihkan background" else "Hapus background")
-                    }
-                    if (state.backgroundRemoved) Text("Background transparan", style = MaterialTheme.typography.labelMedium)
-                    state.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                 }
-                ClosetlyButton(
-                    "Gunakan foto", onUse,
-                    modifier = Modifier.fillMaxWidth().padding(24.dp), enabled = !state.isProcessing,
-                )
             }
         }
     }

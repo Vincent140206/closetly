@@ -33,7 +33,7 @@ class LocalWardrobeRepository(
     @Serializable
     private data class Snapshot(val version: Int = 1, val items: List<ClothingItem>)
 
-    override suspend fun refresh() = withContext(Dispatchers.IO) {
+    override suspend fun refresh(force: Boolean) = withContext(Dispatchers.IO) {
         mutex.withLock {
             val snapshot = if (file.exists()) {
                 json.decodeFromString<Snapshot>(file.readText()).also {
@@ -71,6 +71,7 @@ class LocalWardrobeRepository(
                     color = valid.color, size = valid.size, style = valid.style,
                     imagePath = valid.imagePath, originalImagePath = valid.originalImagePath,
                     photoAdjustments = valid.photoAdjustments,
+                    originalCategory = valid.originalCategory,
                     createdAt = now, updatedAt = now,
                 )
                 commit(listOf(item) + items.value)
@@ -88,6 +89,7 @@ class LocalWardrobeRepository(
                 size = valid.size, style = valid.style, imagePath = valid.imagePath,
                 originalImagePath = valid.originalImagePath, updatedAt = clock(),
                 photoAdjustments = valid.photoAdjustments,
+                originalCategory = valid.originalCategory,
             )
         }
     }

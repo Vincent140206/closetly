@@ -89,8 +89,8 @@ fun AppNavHost(
     val authenticatedUser =
         (authUiState.sessionState as? AuthSessionState.Authenticated)?.user
     val applicationContext = LocalContext.current.applicationContext
-    val wardrobeGraph = remember(authenticatedUser?.id, applicationContext) {
-        WardrobeGraph.forAccount(applicationContext, authenticatedUser?.id)
+    val wardrobeGraph = remember(authenticatedUser?.id, applicationContext, container.supabaseClient) {
+        WardrobeGraph.forAccount(applicationContext, authenticatedUser?.id, container.supabaseClient)
     }
     val wardrobeViewModel: WardrobeViewModel = viewModel(
         key = "wardrobe-${authenticatedUser?.id ?: "development"}",
@@ -252,7 +252,7 @@ fun AppNavHost(
                     onWishlist = { navController.navigate(WishlistRoute) },
                     onOutfits = { navController.navigateToPrimaryDestination(OutfitDestinationId) },
                     onProfile = { navController.navigate(ProfileRoute) },
-                    onRetry = wardrobeViewModel::refresh,
+                    onRetry = { wardrobeViewModel.refresh(force = true) },
                 )
             }
             composable<WardrobeDetailRoute> { entry ->

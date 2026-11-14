@@ -5,26 +5,40 @@ import java.io.File
 import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import io.github.jan.supabase.SupabaseClient
 import vin.pam.closetly.R
 import vin.pam.closetly.feature.wardrobe.data.repository.LocalWardrobeRepository
 import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeRepository
+import vin.pam.closetly.feature.wardrobe.data.repository.SupabaseWardrobeRepository
+import vin.pam.closetly.feature.wardrobe.data.repository.SupabaseWardrobeDataSource
+import vin.pam.closetly.feature.wardrobe.data.repository.UnavailableWardrobeRepository
 import vin.pam.closetly.feature.wardrobe.model.ClothingItem
 import vin.pam.closetly.feature.wardrobe.model.WardrobeCategory
 import vin.pam.closetly.feature.wardrobe.photo.WardrobePhotoProcessor
 import vin.pam.closetly.feature.wardrobe.photo.WardrobePhotoStore
+import vin.pam.closetly.feature.wardrobe.photo.WardrobeCloudPhotoFiles
 
-/** Local account-scoped bindings. Replace repository here when Supabase schema/storage are verified. */
-class WardrobeGraph private constructor(context: Context, accountId: String?) {
+/** Account-scoped bindings for the shared Supabase client and private image files. */
+class WardrobeGraph private constructor(context: Context, accountId: String?, supabase: SupabaseClient?) {
     private val scope = MessageDigest.getInstance("SHA-256")
         .digest((accountId ?: "development").toByteArray()).joinToString("") { "%02x".format(it) }
     private val directory = File(context.filesDir, "wardrobe/$scope")
 
-    val repository: WardrobeRepository = LocalWardrobeRepository(
-        file = File(directory, "collection.json"),
-        initialItems = if (accountId == null) developmentItems(context) else emptyList(),
-    )
     val photoStore = WardrobePhotoStore(context.applicationContext, File(directory, "images"))
     val photoProcessor = WardrobePhotoProcessor(context.applicationContext)
+    val repository: WardrobeRepository = when {
+        accountId != null && supabase != null -> SupabaseWardrobeRepository(
+            remote = SupabaseWardrobeDataSource(supabase),
+            userId = accountId,
+            images = WardrobeCloudPhotoFiles(File(directory, "remote-images"), photoStore),
+        )
+        accountId != null -> UnavailableWardrobeRepository("Konfigurasi Supabase belum tersedia untuk koleksi akun ini.")
+        supabase != null -> UnavailableWardrobeRepository("Masuk ke akun untuk mengakses koleksi pakaian.")
+        else -> LocalWardrobeRepository(
+            file = File(directory, "collection.json"),
+            initialItems = developmentItems(context),
+        )
+    }
 
     private fun developmentItems(context: Context): List<ClothingItem> {
         val now = System.currentTimeMillis()
@@ -47,10 +61,10 @@ class WardrobeGraph private constructor(context: Context, accountId: String?) {
         private val accounts = ConcurrentHashMap<String, WardrobeGraph>()
 
         /** Retained ViewModels and newly created form destinations must share the same write lock. */
-        fun forAccount(context: Context, accountId: String?): WardrobeGraph {
+        fun forAccount(context: Context, accountId: String?, supabase: SupabaseClient? = null): WardrobeGraph {
             val application = context.applicationContext
-            val key = "${application.filesDir.absolutePath}:${accountId ?: "development"}"
-            return accounts.computeIfAbsent(key) { WardrobeGraph(application, accountId) }
+            val key = "${application.filesDir.absolutePath}:${accountId ?: "development"}:${System.identityHashCode(supabase)}"
+            return accounts.computeIfAbsent(key) { WardrobeGraph(application, accountId, supabase) }
         }
     }
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -20,17 +21,19 @@ class WardrobeViewModel(
 ) : ViewModel() {
     private val state = MutableStateFlow(WardrobeUiState())
     val uiState = state.asStateFlow()
+    private var refreshJob: Job? = null
+    private val pendingItems = mutableSetOf<String>()
 
     init {
         viewModelScope.launch { repository.items.collect { items -> state.update { it.copy(items = items) } } }
-        refresh()
     }
 
-    fun refresh() {
-        viewModelScope.launch {
+    fun refresh(force: Boolean = false) {
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
             state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                repository.refresh()
+                repository.refresh(force)
                 val count = outfitCount()
                 state.update { it.copy(outfitCount = count) }
             } catch (cancellation: CancellationException) {
@@ -47,15 +50,16 @@ class WardrobeViewModel(
     fun selectCategory(category: WardrobeCategory?) = state.update { it.copy(filter = it.filter.copy(category = category)) }
     fun applyFilter(filter: WardrobeFilter) = state.update { it.copy(filter = filter) }
 
-    fun toggleFavorite(item: ClothingItem) = mutate { repository.setFavorite(item.id, !item.isFavorite) }
-    fun archive(id: String) = mutate {
+    fun toggleFavorite(item: ClothingItem) = mutate(item.id) { repository.setFavorite(item.id, !item.isFavorite) }
+    fun archive(id: String) = mutate(id) {
         repository.archiveItem(id)
         state.update { it.copy(archivedItemId = id) }
     }
     fun consumeArchive() = state.update { it.copy(archivedItemId = null) }
-    fun restore(id: String) = mutate { repository.restoreItem(id) }
+    fun restore(id: String) = mutate(id) { repository.restoreItem(id) }
 
-    private fun mutate(operation: suspend () -> Unit) {
+    private fun mutate(id: String, operation: suspend () -> Unit) {
+        if (!pendingItems.add(id)) return
         viewModelScope.launch {
             try {
                 operation()
@@ -64,6 +68,8 @@ class WardrobeViewModel(
                 throw cancellation
             } catch (error: Exception) {
                 state.update { it.copy(errorMessage = error.message ?: "Perubahan belum tersimpan. Coba lagi.") }
+            } finally {
+                pendingItems.remove(id)
             }
         }
     }
