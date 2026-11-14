@@ -54,7 +54,7 @@ fun WardrobeDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 WardrobePhoto(item.imagePath, item.name, Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(24.dp)))
-                Text(item.category.label + if (item.isArchived) " · Diarsipkan" else "", style = MaterialTheme.typography.labelLarge)
+                Text(item.categoryLabel + if (item.isArchived) " · Diarsipkan" else "", style = MaterialTheme.typography.labelLarge)
                 Text(item.name, style = MaterialTheme.typography.headlineMedium)
                 if (item.color.isNotBlank()) DetailField("Warna", item.color)
                 if (item.size.isNotBlank()) DetailField("Ukuran", item.size)
