@@ -62,8 +62,14 @@ class WardrobePhotoStore(private val context: Context, private val directory: Fi
             }
             val bitmap = decodeFile(input)
             val normalized = File(staging, "original-${UUID.randomUUID()}.png")
-            writePng(bitmap, normalized)
-            bitmap.recycle()
+            try {
+                writePng(bitmap, normalized)
+            } catch (error: Exception) {
+                normalized.delete()
+                throw error
+            } finally {
+                bitmap.recycle()
+            }
             normalized.absolutePath
         } finally {
             input.delete()
@@ -73,7 +79,11 @@ class WardrobePhotoStore(private val context: Context, private val directory: Fi
     suspend fun load(path: String): Bitmap = withContext(Dispatchers.IO) {
         if (path.startsWith("android.resource://")) {
             val imported = importPhoto(path.toUri())
-            decodeFile(File(imported))
+            try {
+                decodeFile(File(imported))
+            } finally {
+                File(imported).delete()
+            }
         } else {
             decodeFile(File(path))
         }
