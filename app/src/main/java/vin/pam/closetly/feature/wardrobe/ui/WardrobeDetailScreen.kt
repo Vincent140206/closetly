@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,16 +47,20 @@ fun WardrobeDetailScreen(
     onRestore: () -> Unit,
     onLoadPhoto: (String) -> Unit = {},
     isMutating: Boolean = false,
+    onRetry: () -> Unit = {},
 ) {
     LaunchedEffect(item?.id, item?.imagePath) {
         if (item != null && item.imagePath == null) onLoadPhoto(item.id)
     }
-    var confirmArchive by remember { mutableStateOf(false) }
+    var confirmArchive by rememberSaveable(item?.id) { mutableStateOf(false) }
     ClosetlyScaffold(title = "Detail pakaian", onBack = onBack) { padding ->
         if (isLoading && item == null) {
             LoadingState(Modifier.padding(padding))
         } else if (item == null) {
-            Text(error ?: "Pakaian tidak ditemukan.", Modifier.padding(padding).padding(24.dp))
+            Column(Modifier.padding(padding).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(error ?: "Pakaian tidak ditemukan.")
+                ClosetlyButton("Coba muat lagi", onRetry, enabled = !isLoading)
+            }
         } else {
             Column(
                 Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(24.dp),
@@ -68,7 +73,10 @@ fun WardrobeDetailScreen(
                 if (item.size.isNotBlank()) DetailField("Ukuran", item.size)
                 if (item.style.isNotBlank()) DetailField("Gaya", item.style)
                 if (item.photoAdjustments.backgroundRemoved) Text("Background foto transparan", style = MaterialTheme.typography.bodySmall)
-                if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
+                if (error != null) {
+                    Text(error, color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = onRetry, enabled = !isLoading) { Text("Muat ulang detail") }
+                }
                 if (item.isArchived) {
                     ClosetlyButton("Pulihkan ke koleksi", onRestore, Modifier.fillMaxWidth(), enabled = !isMutating, isLoading = isMutating)
                 } else {

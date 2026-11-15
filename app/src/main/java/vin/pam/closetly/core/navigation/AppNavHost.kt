@@ -258,6 +258,7 @@ fun AppNavHost(
             }
             composable<WardrobeDetailRoute> { entry ->
                 val id = entry.toRoute<WardrobeDetailRoute>().itemId
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { wardrobeViewModel.refresh() }
                 LaunchedEffect(wardrobeState.archivedItemId) {
                     if (wardrobeState.archivedItemId == id) {
                         wardrobeViewModel.consumeArchive()
@@ -275,6 +276,7 @@ fun AppNavHost(
                     onRestore = { wardrobeViewModel.restore(id) },
                     onLoadPhoto = wardrobeViewModel::loadPhoto,
                     isMutating = id in wardrobeState.pendingItemIds,
+                    onRetry = { wardrobeViewModel.refresh(force = true) },
                 )
             }
             composable<WardrobeFormRoute> { entry ->
