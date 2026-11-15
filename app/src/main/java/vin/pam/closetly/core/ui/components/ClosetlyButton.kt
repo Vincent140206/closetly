@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -20,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import vin.pam.closetly.ui.theme.CardWhite
 import vin.pam.closetly.ui.theme.ClosetlyDimensions
@@ -42,6 +44,7 @@ fun ClosetlyButton(
     style: ClosetlyButtonStyle = ClosetlyButtonStyle.Primary,
     enabled: Boolean = true,
     isLoading: Boolean = false,
+    leadingIcon: ImageVector? = null,
     shape: Shape = ClosetlyFullShape,
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
@@ -64,6 +67,14 @@ fun ClosetlyButton(
                     modifier = Modifier.size(18.dp),
                     color = contentColor,
                     strokeWidth = 2.dp,
+                )
+            }
+            // ini jujur rada bingung leading icon & trailing icon, bs pake keduanya kah?
+            if (!isLoading && leadingIcon != null) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
                 )
             }
             Text(text = text, style = MaterialTheme.typography.labelLarge)

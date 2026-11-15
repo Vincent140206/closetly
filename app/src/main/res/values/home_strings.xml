@@ -1,0 +1,24 @@
+<resources>
+    <string name="home_greeting">Halo, %1$s</string>
+    <string name="home_greeting_subtitle">Siap atur dan eksplor gaya barumu hari ini?</string>
+    <string name="home_default_name">Teman Closetly</string>
+    <string name="home_open_profile">Buka profil</string>
+    <string name="home_hero_title">Outfit kece,</string>
+    <string name="home_hero_highlight">mood naik.</string>
+    <string name="home_hero_subtitle">Padu padan sesuai gayamu hari ini.</string>
+    <string name="home_try_now">Coba sekarang</string>
+    <string name="home_calendar_title">Kalender outfit</string>
+    <string name="home_view_calendar">Lihat kalender</string>
+    <string name="home_no_outfit">Belum ada outfit hari ini</string>
+    <string name="home_plan_subtitle">Yuk, rencanakan outfit untuk aktivitasmu!</string>
+    <string name="home_create_plan">Buat Rencana</string>
+    <string name="home_community_title">Inspirasi Komunitas</string>
+    <string name="home_community_subtitle">Lihat ide outfit dari sesama pengguna Closetly.</string>
+    <string name="home_view_all">Lihat Semua</string>
+    <string name="home_inspiration_description">Inspirasi outfit dari %1$s</string>
+    <string name="home_wardrobe_title">Lemari kamu</string>
+    <string name="home_open_wardrobe">Buka lemari</string>
+    <string name="home_wardrobe_subtitle">Atur koleksi pakaian dan temukan gaya favoritmu.</string>
+    <string name="home_wishlist">Fashion Wishlist</string>
+    <string name="home_wear_history">Wear History</string>
+</resources>

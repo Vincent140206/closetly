@@ -28,10 +28,10 @@ Gunakan komponen bersama untuk pola app-level yang sama. Komponen khusus pakaian
 ## Navigation dan screen
 
 - Screen tidak menerima `NavController`; gunakan callback dari central navigation graph.
-- Bottom bar hanya menampilkan Beranda, Lemari, Outfit, Planner, dan Komunitas.
+- Bottom bar hanya menampilkan Beranda, Lemari, Outfit, Planner, dan Inspirasi.
 - Wishlist dan Wear History tetap diakses melalui Home atau entry point yang dikoordinasikan.
 - Login, Register, dan Profile tidak menampilkan bottom bar.
-- Package `feature/inspiration` memakai nama user-facing **Community/Komunitas** tanpa rename package otomatis.
+- Package `feature/inspiration` memakai nama user-facing **Community** (label tab: **Inspirasi**) tanpa rename package otomatis.
 
 ## Feature package
 
