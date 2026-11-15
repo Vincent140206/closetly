@@ -79,6 +79,14 @@ class SupabaseWardrobeRepository(
 
     override suspend fun getItem(id: String): ClothingItem = operation {
         val record = findRequired(id)
+        val item = hydrate(record)
+        recordsById = recordsById + (record.id to record)
+        publish(item)
+        item
+    }
+
+    override suspend fun loadPhotoForEditing(id: String): ClothingItem = operation {
+        val record = recordsById[id] ?: findRequired(id)
         val item = hydrate(record, includeOriginal = true)
         recordsById = recordsById + (record.id to record)
         publish(item)
@@ -194,7 +202,7 @@ class SupabaseWardrobeRepository(
         checkOwner(record)
         val image = record.imagePath?.let { path -> cachePhoto(path) { remote.download(userId, path) } }
         val original = (record.originalImagePath ?: record.imagePath)?.let { path ->
-            if (includeOriginal) cachePhoto(path) { remote.download(userId, path) } else images.existingPath(path)
+            if (includeOriginal) cachePhoto(path) { remote.download(userId, path) } else images.cachedPath(path)
         }
         requireSession()
         return record.toDomain(image, original)

@@ -252,6 +252,21 @@ class SupabaseWardrobeRepositoryTest {
     }
 
     @Test
+    fun metadataForm_defersOriginalUntilPhotoEditor_andReusesDownloads() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png", originalImagePath = "$owner/wardrobe/original.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        remote.objects[requireNotNull(row.originalImagePath)] = byteArrayOf(2)
+        val repository = repository(remote)
+        repository.getItem(row.id)
+        assertEquals(1, remote.downloadCount)
+        repository.loadPhotoForEditing(row.id)
+        repository.loadPhotoForEditing(row.id)
+        assertEquals(2, remote.downloadCount)
+    }
+
+    @Test
     fun photoCompletingAfterRefresh_cannotRestoreDeletedRecord() = runBlocking {
         val remote = FakeRemote()
         val row = record().copy(imagePath = "$owner/wardrobe/processed.png")

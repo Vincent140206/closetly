@@ -105,14 +105,17 @@ class WardrobeFormViewModel(
     fun openPhotoEditor() {
         if (state.value.saved || state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting || state.value.photoEditor != null) return
         val draft = state.value.draft
-        val original = draft.originalImagePath ?: draft.imagePath ?: return
+        if (draft.originalImagePath == null && draft.imagePath == null) return
         viewModelScope.launch {
             state.update { it.copy(isImporting = true, errorMessage = null) }
             try {
+                val source = if (itemId != null && !draft.photoChanged) repository.loadPhotoForEditing(itemId).toDraft() else draft
+                val original = source.originalImagePath ?: source.imagePath
+                    ?: throw IllegalArgumentException("Foto tidak tersedia. Pilih ulang dari galeri atau kamera.")
                 val path = if (original.startsWith("android.resource://")) photoStore.importPhoto(original.toUri()) else original
                 val bitmap = photoStore.load(path)
-                val preview = draft.imagePath?.let { photoStore.load(it) } ?: bitmap
-                val adjustments = draft.photoAdjustments
+                val preview = source.imagePath?.let { photoStore.load(it) } ?: bitmap
+                val adjustments = source.photoAdjustments
                 mask = null
                 state.update { it.copy(photoEditor = PhotoEditorState(
                     originalPath = path, original = bitmap, preview = preview,

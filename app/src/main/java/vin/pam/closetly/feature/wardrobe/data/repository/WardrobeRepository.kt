@@ -11,6 +11,8 @@ interface WardrobeRepository {
     suspend fun getItem(id: String): ClothingItem
     /** Warm a visible thumbnail; local repositories already have their image files. */
     suspend fun loadPhoto(id: String) = Unit
+    /** Fetch the original only when the user actually opens the photo editor. */
+    suspend fun loadPhotoForEditing(id: String): ClothingItem = getItem(id)
     /** A stable request ID makes a retried create idempotent. */
     suspend fun createItem(requestId: String, draft: ClothingDraft): ClothingItem
     suspend fun updateItem(id: String, draft: ClothingDraft): ClothingItem
