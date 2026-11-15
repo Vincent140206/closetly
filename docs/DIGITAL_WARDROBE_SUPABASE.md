@@ -52,3 +52,11 @@ Sesudah perbaikan cache dan penanganan error, 43 unit test lulus. Tes membuktika
 Probe read-only dengan publishable key tanpa sesi menerima HTTP 401, kode PostgreSQL `42501` (`permission denied for table clothing_items`). Ini mengonfirmasi akses tabel anonymous ditolak, tetapi belum memverifikasi grant authenticated, kolom migration melalui endpoint, CRUD akun login, atau isolasi RLS dua akun. Tidak ada data project yang ditambah atau diubah selama probe ini.
 
 Koleksi lokal dari versi sebelum integrasi tidak otomatis diunggah. File lokal tetap tersimpan; akun yang login mulai membaca koleksi Supabase. Operasi CRUD membutuhkan jaringan. Mode demo lokal hanya digunakan saat Supabase tidak dikonfigurasi dan tidak ada akun.
+
+## Verifikasi audit 15 November 2026
+
+Pada branch `feature/digital-wardrobe`, 59 unit test lulus dengan 0 failure dan 0 error. Sebanyak 16 tes tambahan mencakup metadata tanpa download foto, pemuatan original saat editor dibuka, penggabungan download yang sama, cache eviction, pergantian sesi, pagination tidak valid, foto yang selesai setelah penghapusan/perubahan metadata, pergantian path foto ketika download masih berjalan, serta pelepasan status loading/write setelah gagal.
+
+Pemeriksaan akhir menjalankan `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest` dan semuanya berhasil. Lint menghasilkan 0 error dan 13 warning konfigurasi, dependency, serta resource. Dependensi coroutine untuk unit test mengikuti version catalog; versi dependency produksi tidak diubah.
+
+Tes Android untuk fallback pratinjau, cleanup kamera, dan pemulihan draft berhasil dikompilasi ke APK tes, tetapi tidak dijalankan pada audit ini karena tidak ada perangkat Android yang terhubung. Hasil emulator pada bagian sebelumnya berasal dari verifikasi 14 November. Kamera, galeri, segmentasi, tampilan dialog pada dark mode, dan CRUD dengan dua akun Supabase tetap perlu smoke test pada perangkat. Tidak ada perubahan schema/policy atau penulisan data Supabase live dalam audit ini.
