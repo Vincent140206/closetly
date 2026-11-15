@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -54,6 +56,8 @@ import vin.pam.closetly.feature.wardrobe.WardrobeFormViewModel
 import vin.pam.closetly.feature.wardrobe.ui.WardrobeScreen
 import vin.pam.closetly.feature.wardrobe.ui.WardrobeDetailScreen
 import vin.pam.closetly.feature.wardrobe.ui.WardrobeFormDestination
+import vin.pam.closetly.feature.planner.ui.PlannerScreen
+import vin.pam.closetly.feature.planner.model.PlannerOutfit
 
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
@@ -344,7 +348,21 @@ fun AppNavHost(
             }
 
             composable<PlannerRoute> {
-                ModulePlaceholderScreen(AppModule.Planner, navController::popBackStack)
+                // Planner uses the existing Mix & Match source until cloud integration is added.
+                val plannerOutfits by produceState(emptyList<PlannerOutfit>(), authenticatedUser?.id) {
+                    value = OutfitGraph.repository.getOutfits().map { outfit ->
+                        PlannerOutfit(outfit.id, outfit.name, outfit.items.firstOrNull { it.imagePath != null }?.imagePath, outfit.items.size)
+                    }
+                }
+                key(authenticatedUser?.id) {
+                    PlannerScreen(
+                        accountId = authenticatedUser?.id,
+                        savedOutfits = plannerOutfits,
+                        onHistoryClick = {
+                            navController.navigate(WearHistoryRoute)
+                        }
+                    )
+                }
             }
 
             //inspiration route
