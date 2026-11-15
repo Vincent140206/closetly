@@ -1,15 +1,20 @@
 package vin.pam.closetly.core.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,6 +51,7 @@ import vin.pam.closetly.feature.outfit.OutfitListViewModel
 import vin.pam.closetly.feature.outfit.ui.OutfitDetailScreen
 import vin.pam.closetly.feature.outfit.ui.OutfitFormScreen
 import vin.pam.closetly.feature.outfit.ui.OutfitScreen
+import vin.pam.closetly.feature.wearhistory.ui.WearHistoryDestination
 
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
@@ -353,7 +359,20 @@ fun AppNavHost(
                 ModulePlaceholderScreen(AppModule.Wishlist, navController::popBackStack)
             }
             composable<WearHistoryRoute> {
-                ModulePlaceholderScreen(AppModule.WearHistory, navController::popBackStack)
+                val client = container.supabaseClient
+
+                if (client == null) {
+                    ModulePlaceholderScreen(
+                        AppModule.WearHistory,
+                        navController::popBackStack
+                    )
+                } else {
+                    WearHistoryDestination(
+                        supabaseClient = client,
+                        userId = authenticatedUser?.id,
+                        onBack = navController::popBackStack
+                    )
+                }
             }
         }
     }
