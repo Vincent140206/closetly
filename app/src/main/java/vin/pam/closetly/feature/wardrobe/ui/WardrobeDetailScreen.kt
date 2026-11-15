@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,7 +44,11 @@ fun WardrobeDetailScreen(
     onFavorite: (ClothingItem) -> Unit,
     onArchive: () -> Unit,
     onRestore: () -> Unit,
+    onLoadPhoto: (String) -> Unit = {},
 ) {
+    LaunchedEffect(item?.id, item?.imagePath) {
+        if (item != null && item.imagePath == null) onLoadPhoto(item.id)
+    }
     var confirmArchive by remember { mutableStateOf(false) }
     ClosetlyScaffold(title = "Detail pakaian", onBack = onBack) { padding ->
         if (isLoading && item == null) {

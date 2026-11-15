@@ -39,6 +39,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,6 +73,7 @@ fun WardrobeScreen(
     onOutfits: () -> Unit,
     onProfile: () -> Unit,
     onRetry: () -> Unit,
+    onLoadPhoto: (String) -> Unit = {},
 ) {
     var showFilter by remember { mutableStateOf(false) }
     val visible = state.visibleItems
@@ -189,7 +191,8 @@ fun WardrobeScreen(
                         CircularProgressIndicator(Modifier.padding(24.dp))
                     }
                 }
-            } else if (visible.isEmpty() && state.errorMessage == null) {
+            }
+            if (!state.isLoading && visible.isEmpty() && state.errorMessage == null) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
@@ -217,6 +220,9 @@ fun WardrobeScreen(
                 }
             } else {
                 items(visible, key = { it.id }) { item ->
+                    LaunchedEffect(item.id, item.imagePath) {
+                        if (item.imagePath == null) onLoadPhoto(item.id)
+                    }
                     ClothingCard(item, { onOpenItem(item.id) }, { onEditItem(item.id) }, { onFavorite(item) })
                 }
             }

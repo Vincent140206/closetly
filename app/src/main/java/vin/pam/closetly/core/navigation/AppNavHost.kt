@@ -253,6 +253,7 @@ fun AppNavHost(
                     onOutfits = { navController.navigateToPrimaryDestination(OutfitDestinationId) },
                     onProfile = { navController.navigate(ProfileRoute) },
                     onRetry = { wardrobeViewModel.refresh(force = true) },
+                    onLoadPhoto = wardrobeViewModel::loadPhoto,
                 )
             }
             composable<WardrobeDetailRoute> { entry ->
@@ -272,6 +273,7 @@ fun AppNavHost(
                     onFavorite = wardrobeViewModel::toggleFavorite,
                     onArchive = { wardrobeViewModel.archive(id) },
                     onRestore = { wardrobeViewModel.restore(id) },
+                    onLoadPhoto = wardrobeViewModel::loadPhoto,
                 )
             }
             composable<WardrobeFormRoute> { entry ->
