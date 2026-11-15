@@ -21,6 +21,7 @@ import vin.pam.closetly.feature.wardrobe.data.dto.ClothingItemRecord
 import vin.pam.closetly.feature.wardrobe.data.repository.SupabaseWardrobeRepository
 import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeImageFiles
 import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeRemoteDataSource
+import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeRemoteException
 import vin.pam.closetly.feature.wardrobe.model.ClothingDraft
 import vin.pam.closetly.feature.wardrobe.model.PhotoAdjustments
 import vin.pam.closetly.feature.wardrobe.model.WardrobeCategory
@@ -280,6 +281,24 @@ class SupabaseWardrobeRepositoryTest {
         repository.loadPhotoForEditing(row.id)
         repository.loadPhotoForEditing(row.id)
         assertEquals(2, remote.downloadCount)
+    }
+
+    @Test
+    fun originalDownloadFailure_keepsClothing_andReportsRetryableEditorError() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png", originalImagePath = "$owner/wardrobe/original.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        val repository = repository(remote)
+        repository.getItem(row.id)
+        remote.beforeDownload = { throw WardrobeRemoteException("Periksa koneksi lalu coba lagi.", IOException("private path")) }
+        try {
+            repository.loadPhotoForEditing(row.id)
+            throw AssertionError("Expected an original download error")
+        } catch (error: IllegalStateException) {
+            assertEquals("Periksa koneksi lalu coba lagi.", error.message)
+        }
+        assertEquals(row.id, repository.items.value.single().id)
     }
 
     @Test

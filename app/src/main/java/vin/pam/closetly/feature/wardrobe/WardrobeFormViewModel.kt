@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeRepository
+import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeRemoteException
 import vin.pam.closetly.feature.wardrobe.model.ClothingDraft
 import vin.pam.closetly.feature.wardrobe.model.PhotoAdjustments
 import vin.pam.closetly.feature.wardrobe.model.toDraft
@@ -253,7 +254,7 @@ class WardrobeFormViewModel(
     }
 
     private fun photoErrorMessage(error: Exception, fallback: String): String =
-        if (error is IllegalArgumentException) error.message ?: fallback else fallback
+        if (error is IllegalArgumentException || error is WardrobeRemoteException) error.message ?: fallback else fallback
 
     private fun neutralSample(bitmap: Bitmap, x: Int, y: Int): IntArray {
         var red = 0

@@ -202,7 +202,7 @@ class SupabaseWardrobeRepository(
         checkOwner(record)
         val image = record.imagePath?.let { path -> cachePhoto(path) { remote.download(userId, path) } }
         val original = (record.originalImagePath ?: record.imagePath)?.let { path ->
-            if (includeOriginal) cachePhoto(path) { remote.download(userId, path) } else images.cachedPath(path)
+            if (includeOriginal) cachePhoto(path, required = true) { remote.download(userId, path) } else images.cachedPath(path)
         }
         requireSession()
         return record.toDomain(image, original)
@@ -216,7 +216,7 @@ class SupabaseWardrobeRepository(
         )
     }
 
-    private suspend fun cachePhoto(path: String, bytes: suspend () -> ByteArray): String {
+    private suspend fun cachePhoto(path: String, required: Boolean = false, bytes: suspend () -> ByteArray): String {
         require(path.startsWith("$userId/")) { "Foto bukan milik akun ini." }
         return try {
             images.cache(path) {
@@ -225,7 +225,8 @@ class SupabaseWardrobeRepository(
             }
         } catch (cancellation: CancellationException) {
             throw cancellation
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            if (required) throw error
             // A failed image download must not hide the clothing record or block metadata editing.
             images.cachedPath(path)
         }
