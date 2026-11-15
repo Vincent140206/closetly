@@ -223,7 +223,7 @@ fun WardrobeScreen(
                     LaunchedEffect(item.id, item.imagePath) {
                         if (item.imagePath == null) onLoadPhoto(item.id)
                     }
-                    ClothingCard(item, { onOpenItem(item.id) }, { onEditItem(item.id) }, { onFavorite(item) })
+                    ClothingCard(item, item.id in state.pendingItemIds, { onOpenItem(item.id) }, { onEditItem(item.id) }, { onFavorite(item) })
                 }
             }
         }
@@ -276,7 +276,7 @@ internal fun CategoryChip(label: String, selected: Boolean, enabled: Boolean = t
 }
 
 @Composable
-private fun ClothingCard(item: ClothingItem, onOpen: () -> Unit, onEdit: () -> Unit, onFavorite: () -> Unit) {
+private fun ClothingCard(item: ClothingItem, isMutating: Boolean, onOpen: () -> Unit, onEdit: () -> Unit, onFavorite: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Surface(
         onClick = onOpen,
@@ -294,7 +294,7 @@ private fun ClothingCard(item: ClothingItem, onOpen: () -> Unit, onEdit: () -> U
                 style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant,
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onFavorite) {
+                IconButton(onClick = onFavorite, enabled = !isMutating) {
                     Icon(
                         if (item.isFavorite) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
                         if (item.isFavorite) "Hapus ${item.name} dari favorit" else "Favoritkan ${item.name}",
@@ -302,7 +302,7 @@ private fun ClothingCard(item: ClothingItem, onOpen: () -> Unit, onEdit: () -> U
                     )
                 }
                 Spacer(Modifier.weight(1f))
-                if (!item.isArchived) IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, "Edit ${item.name}") }
+                if (!item.isArchived) IconButton(onClick = onEdit, enabled = !isMutating) { Icon(Icons.Outlined.Edit, "Edit ${item.name}") }
             }
         }
     }

@@ -274,6 +274,7 @@ fun AppNavHost(
                     onArchive = { wardrobeViewModel.archive(id) },
                     onRestore = { wardrobeViewModel.restore(id) },
                     onLoadPhoto = wardrobeViewModel::loadPhoto,
+                    isMutating = id in wardrobeState.pendingItemIds,
                 )
             }
             composable<WardrobeFormRoute> { entry ->
