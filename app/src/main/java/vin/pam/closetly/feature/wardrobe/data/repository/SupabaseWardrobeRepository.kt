@@ -64,16 +64,20 @@ class SupabaseWardrobeRepository(
     }
 
     override suspend fun loadPhoto(id: String) {
-        val record = operation { recordsById[id] } ?: return
-        val path = record.imagePath ?: return
-        if (images.existingPath(path) != null) return
-        // Keep photo latency out of the CRUD lock. A stale download cannot undo newer metadata.
-        val hydrated = photoDownloads.withPermit { hydrate(record) }
-        operation {
-            val current = recordsById[id]
-            if (current != null && current.imagePath == record.imagePath) {
-                publish(cachedItem(current).copy(imagePath = hydrated.imagePath))
+        var record = operation { recordsById[id] } ?: return
+        while (true) {
+            val path = record.imagePath ?: return
+            // Keep photo latency out of the CRUD lock. Follow a changed path without retrying failures.
+            val hydrated = if (images.existingPath(path) != null) cachedItem(record)
+                else photoDownloads.withPermit { hydrate(record) }
+            val next = operation {
+                val current = recordsById[id]
+                if (current != null && current.imagePath == record.imagePath) {
+                    publish(cachedItem(current).copy(imagePath = hydrated.imagePath))
+                    null
+                } else current
             }
+            record = next ?: return
         }
     }
 

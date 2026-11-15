@@ -322,6 +322,33 @@ class SupabaseWardrobeRepositoryTest {
     }
 
     @Test
+    fun photoChangedDuringDownload_loadsLatestPathWithoutAnotherUiRequest() = runBlocking {
+        val remote = FakeRemote()
+        val oldPath = "$owner/wardrobe/old.png"
+        val newPath = "$owner/wardrobe/new.png"
+        val row = record().copy(imagePath = oldPath)
+        remote.rows[row.id] = row
+        remote.objects[oldPath] = byteArrayOf(1)
+        remote.objects[newPath] = byteArrayOf(2)
+        val started = CompletableDeferred<Unit>()
+        val resume = CompletableDeferred<Unit>()
+        remote.beforeDownload = {
+            if (remote.downloadCount == 1) { started.complete(Unit); resume.await() }
+        }
+        val repository = repository(remote)
+        repository.refresh()
+        val photo = async { repository.loadPhoto(row.id) }
+        started.await()
+        remote.rows[row.id] = row.copy(name = "Foto terbaru", imagePath = newPath)
+        repository.refresh(force = true)
+        resume.complete(Unit)
+        photo.await()
+        assertEquals(2, remote.downloadCount)
+        assertEquals("cache/$newPath", repository.items.value.single().imagePath)
+        assertEquals("Foto terbaru", repository.items.value.single().name)
+    }
+
+    @Test
     fun slowPhoto_doesNotBlockFavorite_orOverwriteItsNewMetadata() = runBlocking {
         val remote = FakeRemote()
         val row = record().copy(imagePath = "$owner/wardrobe/processed.png")
