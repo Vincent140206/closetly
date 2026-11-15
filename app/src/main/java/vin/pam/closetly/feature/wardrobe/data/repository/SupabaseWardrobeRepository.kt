@@ -46,6 +46,11 @@ class SupabaseWardrobeRepository(
         do {
             val page = remote.listPage(userId, after, PAGE_SIZE)
             page.forEach(::checkOwner)
+            check(page.size <= PAGE_SIZE &&
+                page.zipWithNext().all { (first, second) -> first.id < second.id } &&
+                (after == null || page.all { it.id > after })) {
+                "Urutan data koleksi tidak valid. Coba muat ulang."
+            }
             records.addAll(page)
             val last = page.lastOrNull()?.id
             check(page.isEmpty() || last != after) { "Daftar koleksi tidak dapat dimuat. Coba lagi." }

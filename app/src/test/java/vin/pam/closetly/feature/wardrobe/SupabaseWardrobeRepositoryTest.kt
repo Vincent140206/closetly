@@ -162,6 +162,38 @@ class SupabaseWardrobeRepositoryTest {
     }
 
     @Test
+    fun malformedPagination_failsWithoutReplacingPreviousCollection() = runBlocking {
+        val remote = FakeRemote()
+        val row = record()
+        remote.rows[row.id] = row
+        val repository = repository(remote)
+        repository.refresh()
+        remote.pageOverride = List(200) { row }
+        try {
+            repository.refresh(force = true)
+            throw AssertionError("Expected duplicate cursor rejection")
+        } catch (_: IllegalStateException) { }
+        assertEquals(2, remote.pageCount)
+        assertEquals(listOf(row.id), repository.items.value.map { it.id })
+    }
+
+    @Test
+    fun accountChangeDuringPhotoDownload_clearsState_andRejectsLateResult() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        remote.beforeDownload = { remote.sessionUserId = other }
+        val repository = repository(remote)
+        repository.refresh()
+        try {
+            repository.loadPhoto(row.id)
+            throw AssertionError("Expected session guard")
+        } catch (_: IllegalStateException) { }
+        assertTrue(repository.items.value.isEmpty())
+    }
+
+    @Test
     fun changedSession_clearsCachedState_andRejectsNewWrites() = runBlocking {
         val remote = FakeRemote()
         val item = record()
@@ -359,6 +391,7 @@ class SupabaseWardrobeRepositoryTest {
         var downloadCount = 0
         var beforeDownload: suspend () -> Unit = {}
         var pageError: Exception? = null
+        var pageOverride: List<ClothingItemRecord>? = null
         var loseInsertResponse = false
         var failSecondUpload = false
         var afterUpload: (() -> Unit)? = null
@@ -371,6 +404,7 @@ class SupabaseWardrobeRepositoryTest {
             requireOwner(userId)
             pageCount++
             pageError?.let { throw it }
+            pageOverride?.let { return it }
             return rows.values.filter { it.userId == userId && (afterId == null || it.id > afterId) }.sortedBy { it.id }.take(limit)
         }
         override suspend fun find(userId: String, id: String): ClothingItemRecord? {
