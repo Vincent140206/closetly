@@ -1,4 +1,4 @@
-package vin.pam.closetly.feature.outfit.ui
+package vin.pam.closetly.feature.outfit.compat.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

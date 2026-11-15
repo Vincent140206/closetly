@@ -9,7 +9,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,6 +50,14 @@ import vin.pam.closetly.feature.outfit.OutfitListViewModel
 import vin.pam.closetly.feature.outfit.ui.OutfitDetailScreen
 import vin.pam.closetly.feature.outfit.ui.OutfitFormScreen
 import vin.pam.closetly.feature.outfit.ui.OutfitScreen
+import vin.pam.closetly.feature.wardrobe.WardrobeGraph
+import vin.pam.closetly.feature.wardrobe.WardrobeViewModel
+import vin.pam.closetly.feature.wardrobe.WardrobeFormViewModel
+import vin.pam.closetly.feature.wardrobe.ui.WardrobeScreen
+import vin.pam.closetly.feature.wardrobe.ui.WardrobeDetailScreen
+import vin.pam.closetly.feature.wardrobe.ui.WardrobeFormDestination
+import vin.pam.closetly.feature.planner.ui.PlannerScreen
+import vin.pam.closetly.feature.planner.model.PlannerOutfit
 
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
@@ -80,6 +92,15 @@ fun AppNavHost(
     val selectedPrimaryDestination = primaryDestinationId(currentRoute)
     val authenticatedUser =
         (authUiState.sessionState as? AuthSessionState.Authenticated)?.user
+    val applicationContext = LocalContext.current.applicationContext
+    val wardrobeGraph = remember(authenticatedUser?.id, applicationContext, container.supabaseClient) {
+        WardrobeGraph.forAccount(applicationContext, authenticatedUser?.id, container.supabaseClient)
+    }
+    val wardrobeViewModel: WardrobeViewModel = viewModel(
+        key = "wardrobe-${authenticatedUser?.id ?: "development"}",
+        factory = WardrobeViewModel.factory(wardrobeGraph.repository) { OutfitGraph.repository.getOutfits().size },
+    )
+    val wardrobeState by wardrobeViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(authenticatedUser?.id) {
         profileViewModel.onSessionChanged(authenticatedUser?.id)
@@ -136,7 +157,11 @@ fun AppNavHost(
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            modifier = Modifier.padding(outerPadding),
+            modifier = if (selectedPrimaryDestination == HomeDestinationId) {
+                Modifier.padding(top = outerPadding.calculateTopPadding())
+            } else {
+                Modifier.padding(outerPadding)
+            },
         ) {
             composable<OnboardingRoute> {
                 OnboardingScreen(
@@ -152,22 +177,11 @@ fun AppNavHost(
                 )
             }
             composable<HomeRoute> {
-                val statusMessage = when (val state = authUiState.sessionState) {
-                    AuthSessionState.Initializing -> "Restoring saved session..."
-                    is AuthSessionState.Authenticated ->
-                        "Signed in as ${state.user.email.ifBlank { "authenticated user" }}"
-                    AuthSessionState.NotAuthenticated ->
-                        "Development Home is available without login. Supabase profile data is not."
-                    is AuthSessionState.Failure -> state.message
-                    is AuthSessionState.Unavailable -> state.message
-                }
-                val canOpenAuthentication =
-                    authUiState.sessionState !is AuthSessionState.Initializing
-
                 HomeScreen(
-                    authStatus = statusMessage,
-                    authActionLabel = if (authenticatedUser == null) "Login or register" else "Open profile",
-                    isAuthActionEnabled = canOpenAuthentication,
+                    displayName = profileUiState.profile?.displayName?.takeIf { it.isNotBlank() }
+                        ?: authenticatedUser?.email?.substringBefore('@')?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.home_default_name),
+                    bottomContentPadding = outerPadding.calculateBottomPadding(),
                     onModuleClick = { module ->
                         when (module) {
                             AppModule.Wardrobe -> navController.navigateToPrimaryDestination(
@@ -187,14 +201,6 @@ fun AppNavHost(
                         }
                     },
                     onProfileClick = { navController.navigate(ProfileRoute) },
-                    onAuthClick = {
-                        if (authenticatedUser == null) {
-                            authViewModel.clearMessages()
-                            navController.navigate(LoginRoute)
-                        } else {
-                            navController.navigate(ProfileRoute)
-                        }
-                    },
                 )
             }
             composable<LoginRoute> {
@@ -237,7 +243,50 @@ fun AppNavHost(
                 )
             }
             composable<WardrobeRoute> {
-                ModulePlaceholderScreen(AppModule.Wardrobe, navController::popBackStack)
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { wardrobeViewModel.refresh() }
+                WardrobeScreen(
+                    state = wardrobeState,
+                    onSearch = wardrobeViewModel::search,
+                    onCategory = wardrobeViewModel::selectCategory,
+                    onFilter = wardrobeViewModel::applyFilter,
+                    onCreate = { navController.navigate(WardrobeFormRoute()) },
+                    onOpenItem = { navController.navigate(WardrobeDetailRoute(it)) },
+                    onEditItem = { navController.navigate(WardrobeFormRoute(it)) },
+                    onFavorite = wardrobeViewModel::toggleFavorite,
+                    onWishlist = { navController.navigate(WishlistRoute) },
+                    onOutfits = { navController.navigateToPrimaryDestination(OutfitDestinationId) },
+                    onProfile = { navController.navigate(ProfileRoute) },
+                    onRetry = { wardrobeViewModel.refresh(force = true) },
+                )
+            }
+            composable<WardrobeDetailRoute> { entry ->
+                val id = entry.toRoute<WardrobeDetailRoute>().itemId
+                LaunchedEffect(wardrobeState.archivedItemId) {
+                    if (wardrobeState.archivedItemId == id) {
+                        wardrobeViewModel.consumeArchive()
+                        navController.popBackStack()
+                    }
+                }
+                WardrobeDetailScreen(
+                    item = wardrobeState.items.firstOrNull { it.id == id },
+                    isLoading = wardrobeState.isLoading,
+                    error = wardrobeState.errorMessage,
+                    onBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate(WardrobeFormRoute(id)) },
+                    onFavorite = wardrobeViewModel::toggleFavorite,
+                    onArchive = { wardrobeViewModel.archive(id) },
+                    onRestore = { wardrobeViewModel.restore(id) },
+                )
+            }
+            composable<WardrobeFormRoute> { entry ->
+                val id = entry.toRoute<WardrobeFormRoute>().itemId
+                val formViewModel: WardrobeFormViewModel = viewModel(
+                    key = "wardrobe-form-${authenticatedUser?.id ?: "development"}",
+                    factory = WardrobeFormViewModel.factory(
+                        wardrobeGraph.repository, wardrobeGraph.photoStore, wardrobeGraph.photoProcessor, id,
+                    ),
+                )
+                WardrobeFormDestination(formViewModel, onBack = { navController.popBackStack() })
             }
             composable<OutfitRoute> {
                 val outfitViewModel: OutfitListViewModel = viewModel(
@@ -270,7 +319,7 @@ fun AppNavHost(
                     onConfirmDelete = detailViewModel::onConfirmDelete,
                     onDeleted = navController::popBackStack,
                     // TODO: sambungkan ke detail pakaian milik Digital Wardrobe setelah route-nya ada.
-                    onItemClick = null,
+                    onItemClick = {},
                     onRetry = detailViewModel::refresh,
                 )
             }
@@ -299,7 +348,21 @@ fun AppNavHost(
             }
 
             composable<PlannerRoute> {
-                ModulePlaceholderScreen(AppModule.Planner, navController::popBackStack)
+                // Planner uses the existing Mix & Match source until cloud integration is added.
+                val plannerOutfits by produceState(emptyList<PlannerOutfit>(), authenticatedUser?.id) {
+                    value = OutfitGraph.repository.getOutfits().map { outfit ->
+                        PlannerOutfit(outfit.id, outfit.name, outfit.items.firstOrNull { it.imagePath != null }?.imagePath, outfit.items.size)
+                    }
+                }
+                key(authenticatedUser?.id) {
+                    PlannerScreen(
+                        accountId = authenticatedUser?.id,
+                        savedOutfits = plannerOutfits,
+                        onHistoryClick = {
+                            navController.navigate(WearHistoryRoute)
+                        }
+                    )
+                }
             }
 
             //inspiration route

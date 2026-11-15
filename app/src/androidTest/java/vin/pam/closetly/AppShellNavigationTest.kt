@@ -5,11 +5,13 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import org.junit.Rule
 import org.junit.Before
@@ -37,14 +39,18 @@ class AppShellNavigationTest {
 
     @Test
     fun unfinishedModules_openSharedPlaceholder_andNavigateBackHome() {
-        AppModule.entries.filterNot { it == AppModule.Outfit || it == AppModule.Inspiration }.forEach { module ->
-            scrollTo(module.title)
-            composeRule.onNodeWithText(module.title).assertIsDisplayed().performClick()
+        val homeActions = mapOf(
+            AppModule.Wishlist to "Fashion Wishlist",
+            AppModule.WearHistory to "Wear History",
+        )
+        homeActions.forEach { (module, action) ->
+            scrollTo(action)
+            composeRule.onNodeWithText(action).assertIsDisplayed().performClick()
             composeRule.onNodeWithText("Not implemented yet").assertIsDisplayed()
             composeRule.onNodeWithText("${module.title} is assigned to ${module.owner}.").assertIsDisplayed()
             composeRule.onNodeWithText("Back").performClick()
-            scrollTo(module.title)
-            composeRule.onNodeWithText(module.title).assertIsDisplayed()
+            scrollTo(action)
+            composeRule.onNodeWithText(action).assertIsDisplayed()
         }
     }
 
@@ -53,20 +59,39 @@ class AppShellNavigationTest {
         composeRule.onNodeWithText("Beranda").assertIsSelected()
 
         composeRule.onNodeWithText("Lemari").performClick()
-        composeRule.onNodeWithText("Digital Wardrobe").assertIsDisplayed()
+        composeRule.onNodeWithText("Koleksi Lemari Saya").assertIsDisplayed()
         composeRule.onNodeWithText("Lemari").assertIsSelected()
 
         composeRule.onNodeWithText("Outfit").performClick()
-        composeRule.onNodeWithText("Mix & Match Outfit").assertIsDisplayed()
+        composeRule.onNodeWithText("Mix & Match").assertIsDisplayed()
         composeRule.onNodeWithText("Outfit").assertIsSelected()
+
+        composeRule.onNodeWithText("Planner").performClick()
+        composeRule.onNodeWithText("Outfit Planner").assertIsDisplayed()
+        composeRule.onNodeWithText("Planner").assertIsSelected()
 
         composeRule.onNodeWithText("Inspirasi").performClick()
         composeRule.onNodeWithText("Papan Inspirasi").assertIsDisplayed()
         composeRule.onNodeWithText("Inspirasi").assertIsSelected()
 
         composeRule.onNodeWithText("Beranda").performClick()
-        composeRule.onNodeWithText("Your wardrobe,\nyour story.").assertIsDisplayed()
+        composeRule.onNodeWithText("Halo, Teman Closetly").assertIsDisplayed()
         composeRule.onNodeWithText("Beranda").assertIsSelected()
+    }
+
+    @Test
+    fun homeHero_opensMixAndMatch() {
+        composeRule.onNodeWithText("Coba sekarang").performClick()
+        composeRule.onNodeWithText("Mix & Match").assertIsDisplayed()
+        composeRule.onNodeWithText("Outfit").assertIsSelected()
+    }
+
+    @Test
+    fun homeCommunityLink_opensCommunity() {
+        scrollTo("Lihat Semua")
+        composeRule.onNodeWithText("Lihat Semua").performClick()
+        composeRule.onNodeWithText("Papan Inspirasi").assertIsDisplayed()
+        composeRule.onNodeWithText("Inspirasi").assertIsSelected()
     }
 
     @Test
@@ -74,23 +99,24 @@ class AppShellNavigationTest {
         val name = "Outfit uji integrasi"
         val editedName = "Outfit uji setelah edit"
         composeRule.onNodeWithText("Outfit").performClick()
-        composeRule.onNodeWithText("Buat outfit").performClick()
-        composeRule.onNodeWithText("Nama outfit").performTextReplacement(name)
+        composeRule.onNodeWithText("+ Buat Outfit").performClick()
+        scrollTo("Nama Outfit")
+        outfitNameField().performTextReplacement(name)
         scrollTo("White Oversized Shirt")
         composeRule.onNodeWithText("White Oversized Shirt").performClick()
-        scrollTo("Simpan outfit")
-        composeRule.onNodeWithText("Simpan outfit").performClick()
+        composeRule.onNodeWithText("Simpan Outfit", substring = true).performClick()
 
         composeRule.onNodeWithText(name).performClick()
-        composeRule.onNodeWithText("White Oversized Shirt").assertIsDisplayed()
-        composeRule.onNodeWithText("Edit outfit").performClick()
-        composeRule.onNodeWithText("Nama outfit").performTextReplacement(editedName)
-        composeRule.onNodeWithText("Simpan outfit").performClick()
+        composeRule.onNodeWithText("White Oversized Shirt").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Edit Outfit").performScrollTo().performClick()
+        scrollTo("Nama Outfit")
+        outfitNameField().performTextReplacement(editedName)
+        composeRule.onNodeWithText("Simpan Outfit", substring = true).performClick()
 
-        composeRule.onNodeWithText(editedName).assertIsDisplayed()
-        composeRule.onNodeWithText("Hapus outfit").performClick()
+        composeRule.onNodeWithText(editedName).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Hapus Outfit").performScrollTo().performClick()
         composeRule.onNodeWithText("Hapus").performClick()
-        composeRule.onNodeWithText("Mix & Match Outfit").assertIsDisplayed()
+        composeRule.onNodeWithText("Mix & Match").assertIsDisplayed()
         composeRule.onNodeWithText(editedName).assertDoesNotExist()
     }
 
@@ -103,6 +129,8 @@ class AppShellNavigationTest {
         composeRule.onNodeWithText("Inspirasiku").assertDoesNotExist()
         composeRule.onNodeWithText("OOTD Harian").assertIsDisplayed()
     }
+
+    private fun outfitNameField() = composeRule.onAllNodes(hasSetTextAction())[0]
 
     private fun scrollTo(text: String) {
         val verticalScroll = SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)

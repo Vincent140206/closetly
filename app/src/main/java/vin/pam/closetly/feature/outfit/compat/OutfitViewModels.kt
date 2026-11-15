@@ -1,4 +1,4 @@
-package vin.pam.closetly.feature.outfit
+package vin.pam.closetly.feature.outfit.compat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,10 +16,10 @@ import vin.pam.closetly.feature.outfit.data.repository.OutfitRepository
 import vin.pam.closetly.feature.outfit.model.ClothingCategory
 import vin.pam.closetly.feature.outfit.model.ClothingOption
 import vin.pam.closetly.feature.outfit.model.Outfit
-import vin.pam.closetly.feature.outfit.ui.OutfitDetailUiState
-import vin.pam.closetly.feature.outfit.ui.OutfitFormUiState
-import vin.pam.closetly.feature.outfit.ui.OutfitLoadState
-import vin.pam.closetly.feature.outfit.ui.moved
+import vin.pam.closetly.feature.outfit.compat.ui.OutfitDetailUiState
+import vin.pam.closetly.feature.outfit.compat.ui.OutfitFormUiState
+import vin.pam.closetly.feature.outfit.compat.ui.OutfitLoadState
+import vin.pam.closetly.feature.outfit.compat.ui.moved
 
 object OutfitGraph {
     val repository: OutfitRepository by lazy { FakeOutfitRepository() }
