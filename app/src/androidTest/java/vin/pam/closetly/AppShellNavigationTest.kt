@@ -40,7 +40,6 @@ class AppShellNavigationTest {
     @Test
     fun unfinishedModules_openSharedPlaceholder_andNavigateBackHome() {
         val homeActions = mapOf(
-            AppModule.Planner to "Buat Rencana",
             AppModule.Wishlist to "Fashion Wishlist",
             AppModule.WearHistory to "Wear History",
         )
@@ -66,6 +65,10 @@ class AppShellNavigationTest {
         composeRule.onNodeWithText("Outfit").performClick()
         composeRule.onNodeWithText("Mix & Match").assertIsDisplayed()
         composeRule.onNodeWithText("Outfit").assertIsSelected()
+
+        composeRule.onNodeWithText("Planner").performClick()
+        composeRule.onNodeWithText("Outfit Planner").assertIsDisplayed()
+        composeRule.onNodeWithText("Planner").assertIsSelected()
 
         composeRule.onNodeWithText("Inspirasi").performClick()
         composeRule.onNodeWithText("Papan Inspirasi").assertIsDisplayed()
