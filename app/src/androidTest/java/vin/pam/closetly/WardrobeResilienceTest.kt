@@ -69,6 +69,8 @@ class WardrobeResilienceTest {
                 viewModel.loadItem()
                 assertFalse(viewModel.uiState.value.loadFailed)
                 viewModel.edit(viewModel.uiState.value.draft.copy(name = "Kemeja diedit"))
+                viewModel.loadItem()
+                assertEquals("Kemeja diedit", viewModel.uiState.value.draft.name)
                 repository.failUpdate = true
                 viewModel.save()
                 assertFalse(viewModel.uiState.value.saved)
@@ -78,6 +80,7 @@ class WardrobeResilienceTest {
                 repository.failUpdate = false
                 viewModel.save()
                 assertTrue(viewModel.uiState.value.saved)
+                viewModel.save()
                 assertEquals(2, repository.updates.get())
             }
         } finally {

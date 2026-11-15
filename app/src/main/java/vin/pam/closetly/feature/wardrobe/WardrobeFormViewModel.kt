@@ -62,7 +62,7 @@ class WardrobeFormViewModel(
         loadJob = viewModelScope.launch {
             try {
                 val item = repository.getItem(id)
-                state.update { it.copy(draft = restored ?: item.toDraft()) }
+                state.update { it.copy(draft = if (it.hasChanges) it.draft else item.toDraft()) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
@@ -74,7 +74,7 @@ class WardrobeFormViewModel(
     }
 
     fun edit(draft: ClothingDraft) {
-        if (state.value.isSaving || state.value.isLoading || state.value.loadFailed) return
+        if (state.value.saved || state.value.isSaving || state.value.isLoading || state.value.loadFailed) return
         savedState["draft"] = Json.encodeToString(draft)
         state.update { it.copy(draft = draft, hasChanges = true, errorMessage = null) }
     }
@@ -83,7 +83,7 @@ class WardrobeFormViewModel(
     fun reportPhotoError(message: String) = state.update { it.copy(errorMessage = message) }
 
     fun importPhoto(uri: Uri) {
-        if (state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting) return
+        if (state.value.saved || state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting || state.value.photoEditor != null) return
         viewModelScope.launch {
             state.update { it.copy(isImporting = true, errorMessage = null) }
             try {
@@ -103,7 +103,7 @@ class WardrobeFormViewModel(
     }
 
     fun openPhotoEditor() {
-        if (state.value.isSaving || state.value.isImporting) return
+        if (state.value.saved || state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting || state.value.photoEditor != null) return
         val draft = state.value.draft
         val original = draft.originalImagePath ?: draft.imagePath ?: return
         viewModelScope.launch {
@@ -214,7 +214,7 @@ class WardrobeFormViewModel(
     ))
 
     fun save() {
-        if (state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting || state.value.photoEditor != null) return
+        if (state.value.saved || state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting || state.value.photoEditor != null) return
         state.update { it.copy(attemptedSave = true) }
         val draft = try {
             state.value.draft.validated()
