@@ -30,7 +30,7 @@ class WardrobeGraph private constructor(context: Context, accountId: String?, su
         accountId != null && supabase != null -> SupabaseWardrobeRepository(
             remote = SupabaseWardrobeDataSource(supabase),
             userId = accountId,
-            images = WardrobeCloudPhotoFiles(File(directory, "remote-images"), photoStore),
+            images = WardrobeCloudPhotoFiles(File(context.cacheDir, "wardrobe-remote/$scope"), photoStore::prepareUpload),
         )
         accountId != null -> UnavailableWardrobeRepository("Konfigurasi Supabase belum tersedia untuk koleksi akun ini.")
         supabase != null -> UnavailableWardrobeRepository("Masuk ke akun untuk mengakses koleksi pakaian.")

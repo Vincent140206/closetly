@@ -268,6 +268,7 @@ class SupabaseWardrobeRepositoryTest {
     private class FakeImages : WardrobeImageFiles {
         private val cached = java.util.concurrent.ConcurrentHashMap<String, ByteArray>()
         override fun cachedPath(objectPath: String) = "cache/$objectPath"
+        override fun existingPath(objectPath: String) = cachedPath(objectPath).takeIf { cached.containsKey(objectPath) }
         override suspend fun cache(objectPath: String, download: suspend () -> ByteArray): String {
             if (!cached.containsKey(objectPath)) cached[objectPath] = download()
             return cachedPath(objectPath)
