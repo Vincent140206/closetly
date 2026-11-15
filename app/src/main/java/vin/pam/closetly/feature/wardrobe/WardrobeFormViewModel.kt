@@ -114,13 +114,20 @@ class WardrobeFormViewModel(
                     ?: throw IllegalArgumentException("Foto tidak tersedia. Pilih ulang dari galeri atau kamera.")
                 val path = if (original.startsWith("android.resource://")) photoStore.importPhoto(original.toUri()) else original
                 val bitmap = photoStore.load(path)
-                val preview = source.imagePath?.let { photoStore.load(it) } ?: bitmap
-                val adjustments = source.photoAdjustments
+                val preview = try {
+                    source.imagePath?.let { photoStore.load(it) }
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (_: Exception) {
+                    null
+                }
+                val adjustments = if (preview != null) source.photoAdjustments else PhotoAdjustments()
                 mask = null
                 state.update { it.copy(photoEditor = PhotoEditorState(
-                    originalPath = path, original = bitmap, preview = preview,
+                    originalPath = path, original = bitmap, preview = preview ?: bitmap,
                     balance = WhiteBalance(adjustments.redGain, adjustments.greenGain, adjustments.blueGain),
                     backgroundRemoved = adjustments.backgroundRemoved,
+                    errorMessage = if (preview == null) "Pratinjau sebelumnya tidak tersedia. Foto asli ditampilkan; atur ulang warna dan background bila diperlukan." else null,
                 )) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
