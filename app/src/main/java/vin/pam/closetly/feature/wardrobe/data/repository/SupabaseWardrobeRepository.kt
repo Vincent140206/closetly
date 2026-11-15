@@ -252,6 +252,11 @@ class SupabaseWardrobeRepository(
 
     private fun checkOwner(record: ClothingItemRecord) {
         check(record.userId == userId) { "Pakaian bukan milik akun ini." }
+        listOfNotNull(record.imagePath, record.originalImagePath).forEach { path ->
+            check(path.startsWith("$userId/") && path.split('/').none { it.isEmpty() || it == "." || it == ".." }) {
+                "Lokasi foto pakaian tidak valid untuk akun ini. Muat ulang koleksi."
+            }
+        }
     }
 
     private fun requireSession() {

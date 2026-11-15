@@ -210,6 +210,22 @@ class SupabaseWardrobeRepositoryTest {
     }
 
     @Test
+    fun invalidPhotoOwnership_isRejectedBeforePublishingOrDownloading() = runBlocking {
+        for (path in listOf("$other/wardrobe/photo.png", "$owner/../photo.png")) {
+            val remote = FakeRemote()
+            val row = record().copy(imagePath = path)
+            remote.rows[row.id] = row
+            val repository = repository(remote)
+            try {
+                repository.refresh()
+                throw AssertionError("Expected photo ownership guard")
+            } catch (_: IllegalStateException) { }
+            assertTrue(repository.items.value.isEmpty())
+            assertEquals(0, remote.downloadCount)
+        }
+    }
+
+    @Test
     fun sessionChangeDuringUpload_preventsDatabaseInsert() = runBlocking {
         val remote = FakeRemote().apply { afterUpload = { sessionUserId = other } }
         val repository = repository(remote)
