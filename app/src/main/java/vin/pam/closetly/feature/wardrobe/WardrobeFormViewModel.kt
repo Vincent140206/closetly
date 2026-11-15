@@ -14,6 +14,8 @@ import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -80,6 +82,7 @@ class WardrobeFormViewModel(
     }
 
     fun createCameraUri(): Uri = photoStore.createCameraUri()
+    fun discardCameraPhoto(uri: Uri) { viewModelScope.launch { photoStore.discardCameraPhoto(uri) } }
     fun reportPhotoError(message: String) = state.update { it.copy(errorMessage = message) }
 
     fun importPhoto(uri: Uri) {
@@ -97,6 +100,7 @@ class WardrobeFormViewModel(
             } catch (error: Exception) {
                 reportPhotoError(photoErrorMessage(error, "Foto tidak dapat dibuka. Pilih ulang dari galeri atau kamera."))
             } finally {
+                withContext(NonCancellable) { photoStore.discardCameraPhoto(uri) }
                 state.update { it.copy(isImporting = false) }
             }
         }

@@ -25,7 +25,21 @@ class WardrobePhotoStore(private val context: Context, private val directory: Fi
     fun createCameraUri(): Uri {
         val cameraDirectory = File(context.cacheDir, "wardrobe-capture").apply { mkdirs() }
         val image = File.createTempFile("capture-", ".jpg", cameraDirectory)
-        return FileProvider.getUriForFile(context, "${context.packageName}.wardrobe.photos", image)
+        return try {
+            FileProvider.getUriForFile(context, "${context.packageName}.wardrobe.photos", image)
+        } catch (error: Exception) {
+            image.delete()
+            throw error
+        }
+    }
+
+    /** Only delete this app's capture URI; gallery content always belongs to its provider. */
+    suspend fun discardCameraPhoto(uri: Uri) = withContext(Dispatchers.IO) {
+        if (uri.scheme == "content" && uri.authority == "${context.packageName}.wardrobe.photos" &&
+            uri.pathSegments.firstOrNull() == "wardrobe_camera") {
+            runCatching { context.contentResolver.delete(uri, null, null) }
+        }
+        Unit
     }
 
     suspend fun importPhoto(uri: Uri): String = withContext(Dispatchers.IO) {
