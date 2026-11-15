@@ -4,6 +4,7 @@ import java.io.IOException
 import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -196,8 +197,46 @@ class SupabaseWardrobeRepositoryTest {
         remote.rows[item.id] = item
         val repository = repository(remote)
         repository.refresh()
+        repository.loadPhoto(item.id)
         assertEquals(item.id, repository.items.value.single().id)
         assertEquals("cache/${item.imagePath}", repository.items.value.single().imagePath)
+    }
+
+    @Test
+    fun refresh_readsMetadataOnly_andVisiblePhotoIsDownloadedOnce() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png", originalImagePath = "$owner/wardrobe/original.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        val repository = repository(remote)
+        repository.refresh()
+        assertEquals(0, remote.downloadCount)
+        assertEquals(null, repository.items.value.single().imagePath)
+        repository.loadPhoto(row.id)
+        repository.loadPhoto(row.id)
+        assertEquals(1, remote.downloadCount)
+        assertEquals("cache/${row.imagePath}", repository.items.value.single().imagePath)
+        assertEquals(null, repository.items.value.single().originalImagePath)
+    }
+
+    @Test
+    fun photoCompletingAfterRefresh_cannotRestoreDeletedRecord() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        val started = CompletableDeferred<Unit>()
+        val resume = CompletableDeferred<Unit>()
+        remote.beforeDownload = { started.complete(Unit); resume.await() }
+        val repository = repository(remote)
+        repository.refresh()
+        val photo = async { repository.loadPhoto(row.id) }
+        started.await()
+        remote.rows.clear()
+        repository.refresh(force = true)
+        resume.complete(Unit)
+        photo.await()
+        assertTrue(repository.items.value.isEmpty())
     }
 
     @Test
@@ -283,6 +322,8 @@ class SupabaseWardrobeRepositoryTest {
         var insertCount = 0
         var uploadCount = 0
         var pageCount = 0
+        var downloadCount = 0
+        var beforeDownload: suspend () -> Unit = {}
         var pageError: Exception? = null
         var loseInsertResponse = false
         var failSecondUpload = false
@@ -339,6 +380,8 @@ class SupabaseWardrobeRepositoryTest {
         }
         override suspend fun download(userId: String, objectPath: String): ByteArray {
             requireOwner(userId)
+            downloadCount++
+            beforeDownload()
             return objects[objectPath] ?: throw IOException("Missing photo")
         }
     }

@@ -9,6 +9,8 @@ interface WardrobeRepository {
     /** Reuse a recent collection unless the user explicitly requests a reload. */
     suspend fun refresh(force: Boolean = false)
     suspend fun getItem(id: String): ClothingItem
+    /** Warm a visible thumbnail; local repositories already have their image files. */
+    suspend fun loadPhoto(id: String) = Unit
     /** A stable request ID makes a retried create idempotent. */
     suspend fun createItem(requestId: String, draft: ClothingDraft): ClothingItem
     suspend fun updateItem(id: String, draft: ClothingDraft): ClothingItem

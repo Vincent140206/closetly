@@ -5,9 +5,6 @@ import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -37,6 +34,8 @@ class SupabaseWardrobeRepository(
     private val state = MutableStateFlow<List<ClothingItem>>(emptyList())
     override val items = state.asStateFlow()
     private var refreshedAt: Long? = null
+    private var recordsById = emptyMap<String, ClothingItemRecord>()
+    private val photoDownloads = Semaphore(4)
 
     override suspend fun refresh(force: Boolean) = operation {
         // The mutex also coalesces concurrent lifecycle refreshes into one successful fetch.
@@ -52,18 +51,28 @@ class SupabaseWardrobeRepository(
             check(page.isEmpty() || last != after) { "Daftar koleksi tidak dapat dimuat. Coba lagi." }
             after = last
         } while (page.size == PAGE_SIZE)
-        val hydrated = coroutineScope {
-            val downloads = Semaphore(4)
-            records.map { record -> async { downloads.withPermit { hydrate(record) } } }.awaitAll()
-        }
+        val cached = records.map(::cachedItem)
         requireSession()
-        state.value = hydrated.sortedByDescending { it.createdAt }
+        recordsById = records.associateBy { it.id }
+        state.value = cached.sortedByDescending { it.createdAt }
         refreshedAt = elapsedMillis()
+    }
+
+    override suspend fun loadPhoto(id: String) {
+        val record = operation { recordsById[id] } ?: return
+        val path = record.imagePath ?: return
+        if (images.existingPath(path) != null) return
+        // Keep photo latency out of the CRUD lock. A stale download cannot undo newer metadata.
+        val hydrated = photoDownloads.withPermit { hydrate(record) }
+        operation {
+            if (recordsById[id] == record) publish(hydrated)
+        }
     }
 
     override suspend fun getItem(id: String): ClothingItem = operation {
         val record = findRequired(id)
         val item = hydrate(record, includeOriginal = true)
+        recordsById = recordsById + (record.id to record)
         publish(item)
         item
     }
@@ -177,10 +186,18 @@ class SupabaseWardrobeRepository(
         checkOwner(record)
         val image = record.imagePath?.let { path -> cachePhoto(path) { remote.download(userId, path) } }
         val original = (record.originalImagePath ?: record.imagePath)?.let { path ->
-            if (includeOriginal) cachePhoto(path) { remote.download(userId, path) } else images.cachedPath(path)
+            if (includeOriginal) cachePhoto(path) { remote.download(userId, path) } else images.existingPath(path)
         }
         requireSession()
         return record.toDomain(image, original)
+    }
+
+    private fun cachedItem(record: ClothingItemRecord): ClothingItem {
+        checkOwner(record)
+        return record.toDomain(
+            record.imagePath?.let(images::existingPath),
+            (record.originalImagePath ?: record.imagePath)?.let(images::existingPath),
+        )
     }
 
     private suspend fun cachePhoto(path: String, bytes: suspend () -> ByteArray): String {
@@ -200,6 +217,7 @@ class SupabaseWardrobeRepository(
 
     private suspend fun hydrateAndPublish(record: ClothingItemRecord): ClothingItem {
         val item = hydrate(record)
+        recordsById = recordsById + (record.id to record)
         publish(item)
         return item
     }
@@ -223,6 +241,7 @@ class SupabaseWardrobeRepository(
         if (remote.currentUserId() != userId) {
             state.value = emptyList()
             refreshedAt = null
+            recordsById = emptyMap()
             error("Sesi pengguna berubah. Masuk kembali untuk mengakses koleksi.")
         }
     }
