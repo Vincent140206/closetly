@@ -65,7 +65,10 @@ class SupabaseWardrobeRepository(
         // Keep photo latency out of the CRUD lock. A stale download cannot undo newer metadata.
         val hydrated = photoDownloads.withPermit { hydrate(record) }
         operation {
-            if (recordsById[id] == record) publish(hydrated)
+            val current = recordsById[id]
+            if (current != null && current.imagePath == record.imagePath) {
+                publish(cachedItem(current).copy(imagePath = hydrated.imagePath))
+            }
         }
     }
 
@@ -216,7 +219,8 @@ class SupabaseWardrobeRepository(
     }
 
     private suspend fun hydrateAndPublish(record: ClothingItemRecord): ClothingItem {
-        val item = hydrate(record)
+        // A successful write should not wait for an unrelated Storage download.
+        val item = cachedItem(record)
         recordsById = recordsById + (record.id to record)
         publish(item)
         return item

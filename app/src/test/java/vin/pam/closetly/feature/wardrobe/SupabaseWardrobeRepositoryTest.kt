@@ -240,6 +240,40 @@ class SupabaseWardrobeRepositoryTest {
     }
 
     @Test
+    fun slowPhoto_doesNotBlockFavorite_orOverwriteItsNewMetadata() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        val started = CompletableDeferred<Unit>()
+        val resume = CompletableDeferred<Unit>()
+        remote.beforeDownload = { started.complete(Unit); resume.await() }
+        val repository = repository(remote)
+        repository.refresh()
+        val photo = async { repository.loadPhoto(row.id) }
+        started.await()
+        repository.setFavorite(row.id, true)
+        assertTrue(repository.items.value.single().isFavorite)
+        resume.complete(Unit)
+        photo.await()
+        assertTrue(repository.items.value.single().isFavorite)
+        assertEquals("cache/${row.imagePath}", repository.items.value.single().imagePath)
+        assertEquals(1, remote.downloadCount)
+    }
+
+    @Test
+    fun archiveAndRestore_doNotDownloadMissingPhotos() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/unavailable.png")
+        remote.rows[row.id] = row
+        val repository = repository(remote)
+        repository.archiveItem(row.id)
+        repository.restoreItem(row.id)
+        assertEquals(0, remote.downloadCount)
+        assertFalse(repository.items.value.single().isArchived)
+    }
+
+    @Test
     fun validation_matchesVerifiedDatabaseBounds() {
         draft("A").validated()
         draft("A".repeat(120)).copy(color = "B".repeat(60), size = "S".repeat(40)).validated()
