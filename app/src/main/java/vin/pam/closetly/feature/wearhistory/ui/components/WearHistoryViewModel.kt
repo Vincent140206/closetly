@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,11 +40,14 @@ class WearHistoryViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(WearHistoryUiState())
     val uiState: StateFlow<WearHistoryUiState> = _uiState.asStateFlow()
+    private var refreshJob: Job? = null
+    private var outfitsJob: Job? = null
 
     init { refresh() }
 
     fun refresh() {
-        viewModelScope.launch {
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val records = repository.loadHistories(userId)
@@ -54,12 +58,15 @@ class WearHistoryViewModel(
                 _uiState.update {
                     it.copy(isLoading = false, errorMessage = error.message ?: "Gagal memuat riwayat")
                 }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
 
     fun loadSavedOutfits() {
-        viewModelScope.launch {
+        if (outfitsJob?.isActive == true) return
+        outfitsJob = viewModelScope.launch {
             _uiState.update {
                 it.copy(
                     isLoadingOutfits = true,
@@ -86,6 +93,8 @@ class WearHistoryViewModel(
                             ?: "Gagal mengambil outfit tersimpan"
                     )
                 }
+            } finally {
+                _uiState.update { it.copy(isLoadingOutfits = false) }
             }
         }
     }

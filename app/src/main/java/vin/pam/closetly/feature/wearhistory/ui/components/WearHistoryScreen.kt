@@ -287,9 +287,7 @@ fun WearHistoryDestination(
 
                     onSave = { _, _ ->
                         temporaryMessage =
-                            "Navigasi Add sudah berhasil. " +
-                                    "Operasi Insert Supabase " +
-                                    "belum dihubungkan."
+                            "Penyimpanan riwayat belum tersedia. Riwayat ini belum disimpan."
                     }
                 )
             } else {
@@ -321,9 +319,7 @@ fun WearHistoryDestination(
 
                     onDeleteConfirmed = {
                         temporaryMessage =
-                            "Konfirmasi Delete berhasil dibuka. " +
-                                    "Operasi Delete Supabase " +
-                                    "belum dihubungkan."
+                            "Penghapusan riwayat belum tersedia. Data belum dihapus."
                     }
                 )
             } else {
@@ -359,9 +355,7 @@ fun WearHistoryDestination(
 
                     onSave = { _, _ ->
                         temporaryMessage =
-                            "Navigasi Edit sudah berhasil. " +
-                                    "Operasi Update Supabase " +
-                                    "belum dihubungkan."
+                            "Perubahan riwayat belum dapat disimpan."
                     }
                 )
             } else {
@@ -380,7 +374,7 @@ fun WearHistoryDestination(
             },
 
             title = {
-                Text("Tahap Navigasi")
+                Text("Belum tersedia")
             },
 
             text = {
