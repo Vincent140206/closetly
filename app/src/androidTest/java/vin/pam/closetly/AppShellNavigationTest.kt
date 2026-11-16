@@ -38,20 +38,23 @@ class AppShellNavigationTest {
     }
 
     @Test
-    fun unfinishedModules_openSharedPlaceholder_andNavigateBackHome() {
-        val homeActions = mapOf(
-            AppModule.Wishlist to "Fashion Wishlist",
-            AppModule.WearHistory to "Wear History",
-        )
-        homeActions.forEach { (module, action) ->
-            scrollTo(action)
-            composeRule.onNodeWithText(action).assertIsDisplayed().performClick()
-            composeRule.onNodeWithText("Not implemented yet").assertIsDisplayed()
-            composeRule.onNodeWithText("${module.title} is assigned to ${module.owner}.").assertIsDisplayed()
-            composeRule.onNodeWithText("Back").performClick()
-            scrollTo(action)
-            composeRule.onNodeWithText(action).assertIsDisplayed()
-        }
+    fun wishlistFromHome_opensFeature_andCanReturnToCollection() {
+        scrollTo("Fashion Wishlist")
+        composeRule.onNodeWithText("Fashion Wishlist").performClick()
+        composeRule.onNodeWithText("Wishlist Saya").assertIsDisplayed()
+        composeRule.onNodeWithText("Koleksi").performClick()
+        composeRule.onNodeWithText("Koleksi Lemari Saya").assertIsDisplayed()
+        composeRule.onNodeWithText("Lemari").assertIsSelected()
+    }
+
+    @Test
+    fun wearHistoryWithoutSession_showsLoginPrompt_andReturnsHome() {
+        scrollTo("Wear History")
+        composeRule.onNodeWithText("Wear History").performClick()
+        composeRule.onNodeWithText("Silakan login terlebih dahulu.").assertIsDisplayed()
+        composeRule.onNodeWithText("Kembali").performClick()
+        scrollTo("Wear History")
+        composeRule.onNodeWithText("Wear History").assertIsDisplayed()
     }
 
     @Test
