@@ -58,6 +58,7 @@ import vin.pam.closetly.feature.wardrobe.ui.WardrobeDetailScreen
 import vin.pam.closetly.feature.wardrobe.ui.WardrobeFormDestination
 import vin.pam.closetly.feature.planner.ui.PlannerScreen
 import vin.pam.closetly.feature.planner.model.PlannerOutfit
+import vin.pam.closetly.feature.wishlist.ui.WishlistDemoRoot
 
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
@@ -418,7 +419,11 @@ fun AppNavHost(
             }
 
             composable<WishlistRoute> {
-                ModulePlaceholderScreen(AppModule.Wishlist, navController::popBackStack)
+                key(authenticatedUser?.id) {
+                    WishlistDemoRoot(onCollection = {
+                        navController.navigateToPrimaryDestination(WardrobeDestinationId)
+                    })
+                }
             }
             composable<WearHistoryRoute> {
                 ModulePlaceholderScreen(AppModule.WearHistory, navController::popBackStack)
