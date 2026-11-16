@@ -5,9 +5,6 @@ import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -37,6 +34,8 @@ class SupabaseWardrobeRepository(
     private val state = MutableStateFlow<List<ClothingItem>>(emptyList())
     override val items = state.asStateFlow()
     private var refreshedAt: Long? = null
+    private var recordsById = emptyMap<String, ClothingItemRecord>()
+    private val photoDownloads = Semaphore(4)
 
     override suspend fun refresh(force: Boolean) = operation {
         // The mutex also coalesces concurrent lifecycle refreshes into one successful fetch.
@@ -47,23 +46,53 @@ class SupabaseWardrobeRepository(
         do {
             val page = remote.listPage(userId, after, PAGE_SIZE)
             page.forEach(::checkOwner)
+            check(page.size <= PAGE_SIZE &&
+                page.zipWithNext().all { (first, second) -> first.id < second.id } &&
+                (after == null || page.all { it.id > after })) {
+                "Urutan data koleksi tidak valid. Coba muat ulang."
+            }
             records.addAll(page)
             val last = page.lastOrNull()?.id
             check(page.isEmpty() || last != after) { "Daftar koleksi tidak dapat dimuat. Coba lagi." }
             after = last
         } while (page.size == PAGE_SIZE)
-        val hydrated = coroutineScope {
-            val downloads = Semaphore(4)
-            records.map { record -> async { downloads.withPermit { hydrate(record) } } }.awaitAll()
-        }
+        val cached = records.map(::cachedItem)
         requireSession()
-        state.value = hydrated.sortedByDescending { it.createdAt }
+        recordsById = records.associateBy { it.id }
+        state.value = cached.sortedByDescending { it.createdAt }
         refreshedAt = elapsedMillis()
+    }
+
+    override suspend fun loadPhoto(id: String) {
+        var record = operation { recordsById[id] } ?: return
+        while (true) {
+            val path = record.imagePath ?: return
+            // Keep photo latency out of the CRUD lock. Follow a changed path without retrying failures.
+            val hydrated = if (images.existingPath(path) != null) cachedItem(record)
+                else photoDownloads.withPermit { hydrate(record) }
+            val next = operation {
+                val current = recordsById[id]
+                if (current != null && current.imagePath == record.imagePath) {
+                    publish(cachedItem(current).copy(imagePath = hydrated.imagePath))
+                    null
+                } else current
+            }
+            record = next ?: return
+        }
     }
 
     override suspend fun getItem(id: String): ClothingItem = operation {
         val record = findRequired(id)
+        val item = hydrate(record)
+        recordsById = recordsById + (record.id to record)
+        publish(item)
+        item
+    }
+
+    override suspend fun loadPhotoForEditing(id: String): ClothingItem = operation {
+        val record = recordsById[id] ?: findRequired(id)
         val item = hydrate(record, includeOriginal = true)
+        recordsById = recordsById + (record.id to record)
         publish(item)
         item
     }
@@ -177,13 +206,21 @@ class SupabaseWardrobeRepository(
         checkOwner(record)
         val image = record.imagePath?.let { path -> cachePhoto(path) { remote.download(userId, path) } }
         val original = (record.originalImagePath ?: record.imagePath)?.let { path ->
-            if (includeOriginal) cachePhoto(path) { remote.download(userId, path) } else images.cachedPath(path)
+            if (includeOriginal) cachePhoto(path, required = true) { remote.download(userId, path) } else images.cachedPath(path)
         }
         requireSession()
         return record.toDomain(image, original)
     }
 
-    private suspend fun cachePhoto(path: String, bytes: suspend () -> ByteArray): String {
+    private fun cachedItem(record: ClothingItemRecord): ClothingItem {
+        checkOwner(record)
+        return record.toDomain(
+            record.imagePath?.let(images::existingPath),
+            (record.originalImagePath ?: record.imagePath)?.let(images::existingPath),
+        )
+    }
+
+    private suspend fun cachePhoto(path: String, required: Boolean = false, bytes: suspend () -> ByteArray): String {
         require(path.startsWith("$userId/")) { "Foto bukan milik akun ini." }
         return try {
             images.cache(path) {
@@ -192,14 +229,17 @@ class SupabaseWardrobeRepository(
             }
         } catch (cancellation: CancellationException) {
             throw cancellation
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            if (required) throw error
             // A failed image download must not hide the clothing record or block metadata editing.
             images.cachedPath(path)
         }
     }
 
     private suspend fun hydrateAndPublish(record: ClothingItemRecord): ClothingItem {
-        val item = hydrate(record)
+        // A successful write should not wait for an unrelated Storage download.
+        val item = cachedItem(record)
+        recordsById = recordsById + (record.id to record)
         publish(item)
         return item
     }
@@ -217,12 +257,18 @@ class SupabaseWardrobeRepository(
 
     private fun checkOwner(record: ClothingItemRecord) {
         check(record.userId == userId) { "Pakaian bukan milik akun ini." }
+        listOfNotNull(record.imagePath, record.originalImagePath).forEach { path ->
+            check(path.startsWith("$userId/") && path.split('/').none { it.isEmpty() || it == "." || it == ".." }) {
+                "Lokasi foto pakaian tidak valid untuk akun ini. Muat ulang koleksi."
+            }
+        }
     }
 
     private fun requireSession() {
         if (remote.currentUserId() != userId) {
             state.value = emptyList()
             refreshedAt = null
+            recordsById = emptyMap()
             error("Sesi pengguna berubah. Masuk kembali untuk mengakses koleksi.")
         }
     }

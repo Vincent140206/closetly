@@ -22,7 +22,7 @@ class WardrobeViewModel(
     private val state = MutableStateFlow(WardrobeUiState())
     val uiState = state.asStateFlow()
     private var refreshJob: Job? = null
-    private val pendingItems = mutableSetOf<String>()
+    private val pendingPhotos = mutableSetOf<String>()
 
     init {
         viewModelScope.launch { repository.items.collect { items -> state.update { it.copy(items = items) } } }
@@ -47,6 +47,21 @@ class WardrobeViewModel(
     }
 
     fun search(query: String) = state.update { it.copy(query = query) }
+    fun loadPhoto(id: String) {
+        if (!pendingPhotos.add(id)) return
+        viewModelScope.launch {
+            try {
+                repository.loadPhoto(id)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                state.update { it.copy(errorMessage = error.message ?: "Foto belum dapat dimuat. Coba muat ulang koleksi.") }
+            } finally {
+                pendingPhotos.remove(id)
+            }
+        }
+    }
+
     fun selectCategory(category: WardrobeCategory?) = state.update { it.copy(filter = it.filter.copy(category = category)) }
     fun applyFilter(filter: WardrobeFilter) = state.update { it.copy(filter = filter) }
 
@@ -59,7 +74,8 @@ class WardrobeViewModel(
     fun restore(id: String) = mutate(id) { repository.restoreItem(id) }
 
     private fun mutate(id: String, operation: suspend () -> Unit) {
-        if (!pendingItems.add(id)) return
+        if (id in state.value.pendingItemIds) return
+        state.update { it.copy(pendingItemIds = it.pendingItemIds + id) }
         viewModelScope.launch {
             try {
                 operation()
@@ -69,7 +85,7 @@ class WardrobeViewModel(
             } catch (error: Exception) {
                 state.update { it.copy(errorMessage = error.message ?: "Perubahan belum tersimpan. Coba lagi.") }
             } finally {
-                pendingItems.remove(id)
+                state.update { it.copy(pendingItemIds = it.pendingItemIds - id) }
             }
         }
     }

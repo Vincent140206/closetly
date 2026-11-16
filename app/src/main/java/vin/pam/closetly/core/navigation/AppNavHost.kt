@@ -257,10 +257,12 @@ fun AppNavHost(
                     onOutfits = { navController.navigateToPrimaryDestination(OutfitDestinationId) },
                     onProfile = { navController.navigate(ProfileRoute) },
                     onRetry = { wardrobeViewModel.refresh(force = true) },
+                    onLoadPhoto = wardrobeViewModel::loadPhoto,
                 )
             }
             composable<WardrobeDetailRoute> { entry ->
                 val id = entry.toRoute<WardrobeDetailRoute>().itemId
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { wardrobeViewModel.refresh() }
                 LaunchedEffect(wardrobeState.archivedItemId) {
                     if (wardrobeState.archivedItemId == id) {
                         wardrobeViewModel.consumeArchive()
@@ -276,6 +278,9 @@ fun AppNavHost(
                     onFavorite = wardrobeViewModel::toggleFavorite,
                     onArchive = { wardrobeViewModel.archive(id) },
                     onRestore = { wardrobeViewModel.restore(id) },
+                    onLoadPhoto = wardrobeViewModel::loadPhoto,
+                    isMutating = id in wardrobeState.pendingItemIds,
+                    onRetry = { wardrobeViewModel.refresh(force = true) },
                 )
             }
             composable<WardrobeFormRoute> { entry ->

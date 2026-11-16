@@ -16,11 +16,19 @@ Menghapus pakaian berarti mengarsipkan, sehingga referensi outfit dan foto tetap
 
 Koleksi mulai dimuat saat halaman Lemari aktif, tanpa request tambahan dari inisialisasi ViewModel. Hasil list disimpan di memori selama 60 detik, termasuk hasil kosong. Refresh yang bertumpuk memakai hasil pemuatan pertama yang berhasil. Search dan filter bekerja pada data yang sudah dimuat. Tombol muat ulang dan tombol Coba lagi melewati cache. Perubahan dari perangkat lain terlihat setelah refresh saat cache kedaluwarsa, atau langsung setelah muat ulang manual; tidak ada langganan realtime.
 
-Response tambah/edit/favorit/arsip langsung memperbarui daftar di memori. Foto yang sudah diunduh memakai cache file private. Jika refresh gagal, data yang sudah tampil tetap tersedia dan percobaan berikutnya tetap dapat mengambil data lagi. Menekan aksi pakaian yang sama berulang kali selama proses tidak menambah antrean write.
+Response tambah/edit/favorit/arsip langsung memperbarui daftar di memori tanpa menunggu download foto. Refresh hanya membaca metadata dan path foto yang sudah ada di cache. Foto hasil diminta ketika kartu masuk komposisi lazy grid atau detail dibuka, dengan maksimal empat pemuatan foto bersamaan. Prefetch Compose dapat mencakup beberapa kartu di dekat viewport. Search/filter tidak melakukan request tabel. Foto asli baru diambil ketika pengguna membuka Atur foto, sehingga edit metadata tidak mengunduh foto asli.
+
+Cache remote baru berada di `cacheDir/wardrobe-remote/<scope-akun>` dan boleh dibuang Android; pemuatan berikutnya dapat mengunduhnya ulang. Lokasi ini dikecualikan dari [Auto Backup Android](https://developer.android.com/identity/data/autobackup). Foto hasil edit yang belum diunggah tetap berada di filesDir agar draft dapat dipulihkan. File cache dari instalasi versi lama belum dimigrasikan atau dihapus otomatis.
+
+Pembacaan objek foto yang sama berbagi satu download dan file ditulis secara atomik. Hasil download yang terlambat hanya memperbarui foto jika record dan path-nya masih sesuai; metadata terbaru dan item yang sudah dihapus tidak boleh ditimpa. Jika refresh gagal, data yang sudah tampil tetap tersedia dan percobaan berikutnya tetap dapat mengambil data lagi. Urutan pagination dan pemilik path foto diperiksa sebelum daftar baru dipublikasikan.
+
+Menekan aksi pakaian yang sama berulang kali selama proses tidak menambah antrean write. Tombol favorit/edit/arsip/pulihkan yang berkonflik dinonaktifkan selama write untuk item tersebut. Detail yang dipulihkan setelah recreation kembali menjalankan refresh dengan cache yang sama dan menyediakan tombol retry ketika gagal.
 
 Setiap request memiliki batas waktu: 30 detik untuk tabel, 90 detik upload, dan 60 detik download foto. Error jaringan, sesi, izin, konflik, batas ukuran, rate limit, response yang tidak dapat dibaca, dan gangguan server diterjemahkan ke pesan Indonesia tanpa detail request mentah. Retry dilakukan oleh pengguna; tidak ada loop retry otomatis. Pembatalan saat meninggalkan layar tetap membatalkan coroutine.
 
 Form edit yang gagal dimuat menampilkan Coba muat lagi dan memblokir simpan. Gagal menyimpan mempertahankan draft agar bisa dicoba lagi. Kegagalan pemrosesan foto mengembalikan kontrol editor sehingga pengguna bisa mencoba lagi atau memakai foto asli. Modal arsip, konfirmasi keluar, editor foto, dan bottom sheet filter memakai latar putih dengan teks tema terang, termasuk saat aplikasi memakai dark mode.
+
+Reload form mempertahankan draft terbaru dan form yang sudah berhasil disimpan menolak simpan ulang. Jika pratinjau foto hilang tetapi foto asli tersedia, editor dapat memakai foto asli dengan penyesuaian direset dan pesan penjelasan. File capture milik aplikasi dibersihkan setelah impor, pembatalan, atau kegagalan membuka kamera; file galeri tidak dihapus. Pembatalan dari timeout parent tetap diteruskan sebagai cancellation sesuai [kontrak coroutine Kotlin](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/with-timeout.html).
 
 ## Pengujian dengan akun project
 
@@ -44,3 +52,11 @@ Sesudah perbaikan cache dan penanganan error, 43 unit test lulus. Tes membuktika
 Probe read-only dengan publishable key tanpa sesi menerima HTTP 401, kode PostgreSQL `42501` (`permission denied for table clothing_items`). Ini mengonfirmasi akses tabel anonymous ditolak, tetapi belum memverifikasi grant authenticated, kolom migration melalui endpoint, CRUD akun login, atau isolasi RLS dua akun. Tidak ada data project yang ditambah atau diubah selama probe ini.
 
 Koleksi lokal dari versi sebelum integrasi tidak otomatis diunggah. File lokal tetap tersimpan; akun yang login mulai membaca koleksi Supabase. Operasi CRUD membutuhkan jaringan. Mode demo lokal hanya digunakan saat Supabase tidak dikonfigurasi dan tidak ada akun.
+
+## Verifikasi audit 15 November 2026
+
+Pada branch `feature/digital-wardrobe`, 59 unit test lulus dengan 0 failure dan 0 error. Sebanyak 16 tes tambahan mencakup metadata tanpa download foto, pemuatan original saat editor dibuka, penggabungan download yang sama, cache eviction, pergantian sesi, pagination tidak valid, foto yang selesai setelah penghapusan/perubahan metadata, pergantian path foto ketika download masih berjalan, serta pelepasan status loading/write setelah gagal.
+
+Pemeriksaan akhir menjalankan `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest` dan semuanya berhasil. Lint menghasilkan 0 error dan 13 warning konfigurasi, dependency, serta resource. Dependensi coroutine untuk unit test mengikuti version catalog; versi dependency produksi tidak diubah.
+
+Tes Android untuk fallback pratinjau, cleanup kamera, dan pemulihan draft berhasil dikompilasi ke APK tes, tetapi tidak dijalankan pada audit ini karena tidak ada perangkat Android yang terhubung. Hasil emulator pada bagian sebelumnya berasal dari verifikasi 14 November. Kamera, galeri, segmentasi, tampilan dialog pada dark mode, dan CRUD dengan dua akun Supabase tetap perlu smoke test pada perangkat. Tidak ada perubahan schema/policy atau penulisan data Supabase live dalam audit ini.

@@ -7,6 +7,8 @@ import java.net.SocketTimeoutException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.SerializationException
 
 /** Keep transport details out of the UI; callers can retry explicitly. */
@@ -15,6 +17,8 @@ internal class WardrobeRemoteException(message: String, cause: Throwable) : Ille
 internal suspend fun <T> wardrobeRequest(timeoutMillis: Long = 30_000, block: suspend () -> T): T = try {
     withTimeout(timeoutMillis) { block() }
 } catch (error: TimeoutCancellationException) {
+    // A parent timeout must still cancel the caller instead of becoming a retryable error.
+    currentCoroutineContext().ensureActive()
     throw WardrobeRemoteException("Koneksi terlalu lama merespons. Periksa internet lalu coba lagi.", error)
 } catch (cancellation: CancellationException) {
     throw cancellation

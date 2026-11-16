@@ -4,6 +4,8 @@ import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.serialization.SerializationException
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
@@ -13,6 +15,16 @@ import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeRemoteException
 import vin.pam.closetly.feature.wardrobe.data.repository.wardrobeRequest
 
 class WardrobeRequestTest {
+    @Test
+    fun parentTimeout_remainsCancellation() = runBlocking {
+        try {
+            withTimeout(20) { wardrobeRequest(timeoutMillis = 10_000) { delay(10_000) } }
+            throw AssertionError("Expected parent cancellation")
+        } catch (_: TimeoutCancellationException) {
+            // An enclosing operation owns this timeout, not the network error mapper.
+        }
+    }
+
     @Test
     fun failedTransportAndDecoding_hideRawDetails_andRetainCause() = runBlocking {
         listOf(IOException("private/path"), SerializationException("raw response"), IllegalStateException("request headers")).forEach { cause ->

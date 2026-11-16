@@ -13,9 +13,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,13 +45,22 @@ fun WardrobeDetailScreen(
     onFavorite: (ClothingItem) -> Unit,
     onArchive: () -> Unit,
     onRestore: () -> Unit,
+    onLoadPhoto: (String) -> Unit = {},
+    isMutating: Boolean = false,
+    onRetry: () -> Unit = {},
 ) {
-    var confirmArchive by remember { mutableStateOf(false) }
+    LaunchedEffect(item?.id, item?.imagePath) {
+        if (item != null && item.imagePath == null) onLoadPhoto(item.id)
+    }
+    var confirmArchive by rememberSaveable(item?.id) { mutableStateOf(false) }
     ClosetlyScaffold(title = "Detail pakaian", onBack = onBack) { padding ->
         if (isLoading && item == null) {
             LoadingState(Modifier.padding(padding))
         } else if (item == null) {
-            Text(error ?: "Pakaian tidak ditemukan.", Modifier.padding(padding).padding(24.dp))
+            Column(Modifier.padding(padding).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(error ?: "Pakaian tidak ditemukan.")
+                ClosetlyButton("Coba muat lagi", onRetry, enabled = !isLoading)
+            }
         } else {
             Column(
                 Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(24.dp),
@@ -62,16 +73,20 @@ fun WardrobeDetailScreen(
                 if (item.size.isNotBlank()) DetailField("Ukuran", item.size)
                 if (item.style.isNotBlank()) DetailField("Gaya", item.style)
                 if (item.photoAdjustments.backgroundRemoved) Text("Background foto transparan", style = MaterialTheme.typography.bodySmall)
-                if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
+                if (error != null) {
+                    Text(error, color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = onRetry, enabled = !isLoading) { Text("Muat ulang detail") }
+                }
                 if (item.isArchived) {
-                    ClosetlyButton("Pulihkan ke koleksi", onRestore, Modifier.fillMaxWidth())
+                    ClosetlyButton("Pulihkan ke koleksi", onRestore, Modifier.fillMaxWidth(), enabled = !isMutating, isLoading = isMutating)
                 } else {
-                    ClosetlyButton("Edit pakaian", onEdit, Modifier.fillMaxWidth())
+                    ClosetlyButton("Edit pakaian", onEdit, Modifier.fillMaxWidth(), enabled = !isMutating)
                     ClosetlyButton(
                         if (item.isFavorite) "Hapus dari favorit" else "Jadikan favorit",
                         { onFavorite(item) }, Modifier.fillMaxWidth(), style = ClosetlyButtonStyle.Secondary,
+                        enabled = !isMutating, isLoading = isMutating,
                     )
-                    TextButton(onClick = { confirmArchive = true }, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { confirmArchive = true }, enabled = !isMutating, modifier = Modifier.fillMaxWidth()) {
                         Text("Hapus pakaian", color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -89,7 +104,7 @@ fun WardrobeDetailScreen(
             onDismissRequest = { confirmArchive = false },
             title = { Text("Hapus pakaian dari koleksi?") },
             text = { Text("Pakaian dipindahkan ke arsip agar referensi outfit tetap tersimpan. Kamu bisa memulihkannya melalui filter Arsip.") },
-            confirmButton = { TextButton(onClick = { confirmArchive = false; onArchive() }) { Text("Hapus", color = MaterialTheme.colorScheme.error) } },
+            confirmButton = { TextButton(enabled = !isMutating, onClick = { confirmArchive = false; onArchive() }) { Text("Hapus", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { confirmArchive = false }) { Text("Batal") } },
         )
     }
