@@ -1,5 +1,7 @@
 # Integrasi Digital Wardrobe
 
+Untuk anggota tim yang ingin memakai data pakaian di fitur lain, mulai dari [panduan singkat memakai data Wardrobe](PAKAI_DATA_WARDROBE.md).
+
 Branch: `feature/digital-wardrobe`. Data koleksi akun yang login menggunakan `public.clothing_items` melalui shared Supabase client aplikasi. Konfigurasi tetap `SUPABASE_URL` dan `SUPABASE_ANON_KEY` di `secrets.properties`; jangan gunakan service-role key di Android.
 
 ## Database dan foto
