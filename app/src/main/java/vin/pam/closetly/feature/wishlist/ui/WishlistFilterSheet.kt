@@ -24,6 +24,8 @@ import vin.pam.closetly.ui.theme.ClosetlySpacing
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.graphics.Color
+import vin.pam.closetly.ui.theme.ClosetlyTheme
 import androidx.compose.ui.Alignment
 
 internal enum class PurchaseFilter(val label: String) {
@@ -48,150 +50,97 @@ internal fun WishlistFilterSheet(
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
     )
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(ClosetlySpacing.Lg),
-            verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm),
+    ClosetlyTheme(darkTheme = false) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            containerColor = Color.White,
         ) {
-            Text("Filter Wishlist", style = MaterialTheme.typography.titleLarge)
-
-            Text("Kategori", style = MaterialTheme.typography.titleSmall)
-            ModalBottomSheet(
-                onDismissRequest = onDismiss,
-                sheetState = sheetState,
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.85f)
+                    .padding(ClosetlySpacing.Lg),
+                verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Md),
             ) {
+                Text(
+                    text = "Filter Wishlist",
+                    style = MaterialTheme.typography.titleLarge,
+                )
+
                 Column(
                     modifier = Modifier
+                        .weight(1f)
                         .fillMaxWidth()
-                        .fillMaxHeight(0.85f)
-                        .padding(ClosetlySpacing.Lg),
-                    verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Md),
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm),
                 ) {
-                    Text(
-                        text = "Filter Wishlist",
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm),
-                    ) {
-                        Text("Kategori", style = MaterialTheme.typography.titleSmall)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm)) {
-                            FilterChip(
-                                selected = category == null,
-                                onClick = { category = null },
-                                label = { Text("Semua kategori") },
-                            )
-                            WishlistCategory.entries.forEach { option ->
-                                FilterChip(
-                                    selected = category == option,
-                                    onClick = { category = option },
-                                    label = { Text(option.label) },
-                                )
-                            }
-                        }
-
-                        Text("Prioritas pembelian", style = MaterialTheme.typography.titleSmall)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm)) {
-                            FilterChip(
-                                selected = priority == null,
-                                onClick = { priority = null },
-                                label = { Text("Semua prioritas") },
-                            )
-                            WishlistPriority.entries.forEach { option ->
-                                FilterChip(
-                                    selected = priority == option,
-                                    onClick = { priority = option },
-                                    label = { Text(option.label) },
-                                )
-                            }
-                        }
-
-                        Text("Status pembelian", style = MaterialTheme.typography.titleSmall)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm)) {
-                            PurchaseFilter.entries.forEach { option ->
-                                FilterChip(
-                                    selected = status == option,
-                                    onClick = { status = option },
-                                    label = { Text(option.label) },
-                                )
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        TextButton(
-                            onClick = {
-                                category = null
-                                priority = null
-                                status = PurchaseFilter.All
-                            },
-                        ) {
-                            Text("Reset")
-                        }
-
-                        ClosetlyButton(
-                            text = "Terapkan filter",
-                            onClick = { onApply(category, priority, status) },
-                            modifier = Modifier.weight(1f),
+                    Text("Kategori", style = MaterialTheme.typography.titleSmall)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm)) {
+                        FilterChip(
+                            selected = category == null,
+                            onClick = { category = null },
+                            label = { Text("Semua kategori") },
                         )
+                        WishlistCategory.entries.forEach { option ->
+                            FilterChip(
+                                selected = category == option,
+                                onClick = { category = option },
+                                label = { Text(option.label) },
+                            )
+                        }
+                    }
+
+                    Text("Prioritas pembelian", style = MaterialTheme.typography.titleSmall)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm)) {
+                        FilterChip(
+                            selected = priority == null,
+                            onClick = { priority = null },
+                            label = { Text("Semua prioritas") },
+                        )
+                        WishlistPriority.entries.forEach { option ->
+                            FilterChip(
+                                selected = priority == option,
+                                onClick = { priority = option },
+                                label = { Text(option.label) },
+                            )
+                        }
+                    }
+
+                    Text("Status pembelian", style = MaterialTheme.typography.titleSmall)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm)) {
+                        PurchaseFilter.entries.forEach { option ->
+                            FilterChip(
+                                selected = status == option,
+                                onClick = { status = option },
+                                label = { Text(option.label) },
+                            )
+                        }
                     }
                 }
-            }
 
-            Text("Prioritas pembelian", style = MaterialTheme.typography.titleSmall)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm)) {
-                FilterChip(
-                    selected = priority == null,
-                    onClick = { priority = null },
-                    label = { Text("Semua prioritas") },
-                )
-                WishlistPriority.entries.forEach { option ->
-                    FilterChip(
-                        selected = priority == option,
-                        onClick = { priority = option },
-                        label = { Text(option.label) },
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(
+                        onClick = {
+                            category = null
+                            priority = null
+                            status = PurchaseFilter.All
+                        },
+                    ) {
+                        Text("Reset")
+                    }
+
+                    ClosetlyButton(
+                        text = "Terapkan filter",
+                        onClick = { onApply(category, priority, status) },
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
-
-            Text("Status pembelian", style = MaterialTheme.typography.titleSmall)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm)) {
-                PurchaseFilter.entries.forEach { option ->
-                    FilterChip(
-                        selected = status == option,
-                        onClick = { status = option },
-                        label = { Text(option.label) },
-                    )
-                }
-            }
-
-            TextButton(
-                onClick = {
-                    category = null
-                    priority = null
-                    status = PurchaseFilter.All
-                },
-            ) {
-                Text("Reset")
-            }
-
-            ClosetlyButton(
-                text = "Terapkan filter",
-                onClick = { onApply(category, priority, status) },
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 }

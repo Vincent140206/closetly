@@ -32,19 +32,23 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class WishlistCategory(val label: String) {
     Clothing("Pakaian"),
     Shoes("Sepatu"),
     Accessories("Aksesori"),
 }
 
+@Serializable
 enum class WishlistPriority(val label: String) {
     High("Tinggi"),
     Medium("Sedang"),
     Low("Rendah"),
 }
 
+@Serializable
 data class WishlistFormData(
     val name: String,
     val category: WishlistCategory,

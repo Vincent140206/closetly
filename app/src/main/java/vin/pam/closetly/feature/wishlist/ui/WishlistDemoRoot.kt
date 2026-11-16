@@ -15,12 +15,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.saveable.listSaver
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import java.text.NumberFormat
 import java.util.Locale
 import java.util.UUID
 
+@Serializable
 private data class WishlistDemoEntry(
     val id: String,
     val formData: WishlistFormData,
@@ -61,7 +66,10 @@ fun WishlistDemoRoot(
 
     val tabStateHolder = rememberSaveableStateHolder()
 
-    var entries by remember {
+    var entries by rememberSaveable(stateSaver = listSaver<List<WishlistDemoEntry>, String>(
+        save = { entries -> entries.map { Json.encodeToString(it) } },
+        restore = { entries -> entries.map { Json.decodeFromString<WishlistDemoEntry>(it) } },
+    )) {
         mutableStateOf(
             listOf(
                 WishlistDemoEntry(
