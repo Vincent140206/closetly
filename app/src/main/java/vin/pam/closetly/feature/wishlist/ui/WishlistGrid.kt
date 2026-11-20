@@ -26,6 +26,8 @@ data class WishlistCardData(
     val priorityLabel: String? = null,
     val imageModel: String? = null,
     val category: WishlistCategory? = null,
+    val estimatedPrice: Long? = null,
+    val productUrl: String? = null,
 
 )
 

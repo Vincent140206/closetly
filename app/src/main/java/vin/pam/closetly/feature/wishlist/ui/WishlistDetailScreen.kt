@@ -31,6 +31,22 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.Button
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun WishlistDetailScreen(
@@ -38,9 +54,13 @@ fun WishlistDetailScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-)
+    onTogglePurchased: () -> Unit,
+) {
+    val context = LocalContext.current
+    val productUrl = item.productUrl?.trim()?.takeIf {
+        it.isNotEmpty()
+    }
 
-{
     var showDeleteDialog by rememberSaveable(item.id) {
         mutableStateOf(false)
     }
@@ -73,63 +93,321 @@ fun WishlistDetailScreen(
             )
         }
 
-        ClosetlyCard(modifier = Modifier.fillMaxWidth()) {
-            Text(item.name, style = MaterialTheme.typography.titleMedium)
-            Text("Perkiraan harga: ${item.priceLabel ?: "Belum diisi"}")
-            Text("Toko: ${item.store ?: "Belum diisi"}")
-            Text("Prioritas: ${item.priorityLabel ?: "Belum diisi"}")
-            Text(if (item.isPurchased) "Sudah Dibeli" else "Belum Dibeli")
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm),
-            verticalAlignment = Alignment.CenterVertically,
+        // Foto utama barang.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
         ) {
-            ClosetlyButton(
-                text = "Edit barang",
-                onClick = onEdit,
-                modifier = Modifier.weight(1f),
-            )
-
-            OutlinedButton(
-                onClick = { showDeleteDialog = true },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(45.dp),
-                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.error,
-                ),
-            ) {
-                Text("Hapus barang")
+            if (item.imageModel.isNullOrBlank()) {
+                Text(
+                    text = "Belum ada foto",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                AsyncImage(
+                    model = item.imageModel,
+                    contentDescription = "Foto ${item.name}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
 
+// Kategori dan status pembelian.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = item.category?.label ?: "Tanpa kategori",
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = ClosetlySpacing.Sm),
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = 12.sp,
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = if (item.isPurchased) {
+                    Color(0xFFF1F6F0)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                },
+            ) {
+                Text(
+                    text = if (item.isPurchased) {
+                        "✓ Sudah Dibeli"
+                    } else {
+                        "Belum Dibeli"
+                    },
+                    modifier = Modifier.padding(
+                        horizontal = 10.dp,
+                        vertical = 6.dp,
+                    ),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+
+// Nama dan perkiraan harga.
+        Column(
+            verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm),
+        ) {
+            Text(
+                text = item.name,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 24.sp,
+                    lineHeight = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
+            )
+
+            Text(
+                text = item.priceLabel ?: "Harga belum diisi",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = 20.sp,
+                    lineHeight = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+
+// Informasi toko dan prioritas.
+        ClosetlyCard(
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    ClosetlySpacing.Md,
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(
+                        ClosetlySpacing.Xs,
+                    ),
+                ) {
+                    Text(
+                        text = "Nama toko",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Text(
+                        text = item.store
+                            ?.takeIf { it.isNotBlank() }
+                            ?: "Belum diisi",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(
+                        ClosetlySpacing.Xs,
+                    ),
+                ) {
+                    Text(
+                        text = "Prioritas pembelian",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Text(
+                        text = item.priorityLabel ?: "Belum diisi",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                    )
+                }
+            }
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(ClosetlySpacing.Sm),
+        )
+        {
+            if (productUrl != null) {
+                OutlinedButton(
+                    onClick = {
+                        val normalizedUrl = when {
+                            productUrl.startsWith(
+                                "https://",
+                                ignoreCase = true,
+                            ) -> productUrl
+
+                            productUrl.startsWith(
+                                "http://",
+                                ignoreCase = true,
+                            ) -> productUrl
+
+                            else -> "https://$productUrl"
+                        }
+
+                        val uri = Uri.parse(normalizedUrl)
+
+                        val isValidUrl =
+                            (
+                                    uri.scheme.equals("https", ignoreCase = true) ||
+                                            uri.scheme.equals("http", ignoreCase = true)
+                                    ) &&
+                                    !uri.host.isNullOrBlank() &&
+                                    normalizedUrl.none { it.isWhitespace() }
+
+                        if (isValidUrl) {
+                            try {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, uri),
+                                )
+                            } catch (_: ActivityNotFoundException) {
+                                Toast.makeText(
+                                    context,
+                                    "Tidak ada aplikasi untuk membuka tautan.",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Tautan belum valid. Periksa melalui Edit barang.",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(45.dp),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                ) {
+                    Text(
+                        text = "Kunjungi Produk",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
+
+            ClosetlyButton(
+                text = if (item.isPurchased) {
+                    "Tandai belum dibeli"
+                } else {
+                    "Tandai sudah dibeli"
+                },
+                onClick = onTogglePurchased,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedButton(
+                onClick = onEdit,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(45.dp),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+            ) {
+                Text(
+                    text = "Edit barang",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+
+            TextButton(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Text(
+                    text = "Hapus barang",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
 
 
     }
     if (showDeleteDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Hapus barang ini?") },
+            onDismissRequest = {
+                showDeleteDialog = false
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Text(
+                    text = "Hapus barang ini?",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+            },
             text = {
-                Text("\"${item.name}\" akan dihapus dari Wishlist.")
+                Text(
+                    text = "\"${item.name}\" akan dihapus dari Wishlist. " +
+                            "Tindakan ini tidak dapat dibatalkan.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         showDeleteDialog = false
                         onDelete()
                     },
+                    shape = RoundedCornerShape(45.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
                 ) {
-                    Text(
-                        text = "Hapus barang",
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                    Text("Hapus barang")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                OutlinedButton(
+                    onClick = {
+                        showDeleteDialog = false
+                    },
+                    shape = RoundedCornerShape(45.dp),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                ) {
                     Text("Batal")
                 }
             },

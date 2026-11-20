@@ -59,7 +59,9 @@ import vin.pam.closetly.feature.wardrobe.ui.WardrobeDetailScreen
 import vin.pam.closetly.feature.wardrobe.ui.WardrobeFormDestination
 import vin.pam.closetly.feature.planner.ui.PlannerScreen
 import vin.pam.closetly.feature.planner.model.PlannerOutfit
-
+import vin.pam.closetly.feature.wardrobe.ui.components.WardrobeBrandHeader
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
 private const val OutfitDestinationId = "outfit"
@@ -91,6 +93,9 @@ fun AppNavHost(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val selectedPrimaryDestination = primaryDestinationId(currentRoute)
+    var isWishlistFormVisible by remember {
+        mutableStateOf(false)
+    }
     val authenticatedUser =
         (authUiState.sessionState as? AuthSessionState.Authenticated)?.user
     val applicationContext = LocalContext.current.applicationContext
@@ -144,7 +149,13 @@ fun AppNavHost(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (selectedPrimaryDestination != null) {
+            if (
+                selectedPrimaryDestination != null &&
+                (
+                        selectedPrimaryDestination != WardrobeDestinationId ||
+                                !isWishlistFormVisible
+                        )
+            ) {
                 ClosetlyBottomBar(
                     items = PrimaryBottomBarItems,
                     selectedItemId = selectedPrimaryDestination,
@@ -253,7 +264,16 @@ fun AppNavHost(
 
                 WishlistDemoRoot(
                     modifier = Modifier.consumeWindowInsets(outerPadding),
+                    headerContent = {
+                        WardrobeBrandHeader(
+                            { navController.navigate(ProfileRoute) },
+                        )
+                    },
+                    onFormVisibilityChange = { visible ->
+                        isWishlistFormVisible = visible
+                    },
                     collectionContent = {
+
                         WardrobeScreen(
                             state = wardrobeState,
                             onSearch = wardrobeViewModel::search,
@@ -270,6 +290,7 @@ fun AppNavHost(
                             onProfile = { navController.navigate(ProfileRoute) },
                             onRetry = { wardrobeViewModel.refresh(force = true) },
                             showClosetTabs = false,
+                            showBrandHeader = false,
                         )
                     },
                 )
@@ -431,6 +452,9 @@ fun AppNavHost(
             composable<WishlistRoute> {
                 WishlistDemoRoot(
                     modifier = Modifier.consumeWindowInsets(outerPadding),
+                    onFormVisibilityChange = { visible ->
+                        isWishlistFormVisible = visible
+                    },
                 )
             }
             composable<WearHistoryRoute> {
