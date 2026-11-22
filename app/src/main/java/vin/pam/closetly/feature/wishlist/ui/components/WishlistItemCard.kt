@@ -30,6 +30,16 @@ import vin.pam.closetly.core.ui.components.ClosetlyCard
 import vin.pam.closetly.ui.theme.ClosetlyRadius
 import vin.pam.closetly.ui.theme.ClosetlySpacing
 import vin.pam.closetly.ui.theme.ClosetlyTheme
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun WishlistItemCard(
@@ -75,54 +85,118 @@ fun WishlistItemCard(
                 }
             }
 
-            Text(text = name, style = typography.titleSmall)
+            Text(
+                text = name,
+                style = typography.titleSmall.copy(
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
+                color = colors.onSurface,
+                minLines = 2,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
 
             if (!priceLabel.isNullOrBlank()) {
-                Text(text = priceLabel, style = typography.bodyMedium)
+                Text(
+                    text = priceLabel,
+                    style = typography.titleSmall.copy(
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    color = colors.onSurface,
+                )
             }
 
             if (!store.isNullOrBlank()) {
                 Text(
                     text = store,
-                    style = typography.bodySmall,
+                    style = typography.bodySmall.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Normal,
+                    ),
                     color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
             if (!priorityLabel.isNullOrBlank()) {
-                Text(
-                    text = "Prioritas $priorityLabel",
-                    style = typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Flag,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = colors.onSurface,
+                    )
+
+                    Text(
+                        text = "Prioritas ${priorityLabel.lowercase()}",
+                        modifier = Modifier.weight(1f),
+                        style = typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Normal,
+                        ),
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
 
             Surface(
-                shape = MaterialTheme.shapes.small,
-                color = if (isPurchased) colors.secondaryContainer else colors.surfaceVariant,
-                contentColor = if (isPurchased) {
-                    colors.onSecondaryContainer
+                shape = RoundedCornerShape(8.dp),
+                color = if (isPurchased) {
+                    Color(0xFFF1F6F0)
                 } else {
-                    colors.onSurfaceVariant
+                    colors.surfaceVariant
+                },
+                contentColor = if (isPurchased) {
+                    Color(0xFF262626)
+                } else {
+                    colors.onSurface
                 },
             ) {
-                Text(
-                    text = if (isPurchased) "Sudah Dibeli" else "Belum Dibeli",
-                    style = typography.labelSmall,
+                Row(
                     modifier = Modifier.padding(
-                        horizontal = ClosetlySpacing.Sm,
-                        vertical = ClosetlySpacing.Xs,
+                        horizontal = 8.dp,
+                        vertical = 4.dp,
                     ),
-                )
-            }
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (isPurchased) {
+                        Icon(
+                            imageVector = Icons.Outlined.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
 
-            if (!isPurchased && onMarkPurchased != null) {
-                ClosetlyButton(
-                    text = "Tandai sudah dibeli",
-                    onClick = onMarkPurchased,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                    Text(
+                        text = if (isPurchased) "Sudah Dibeli" else "Belum Dibeli",
+                        style = typography.labelSmall.copy(
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                    )
+                }
             }
+        }
+
+        if (!isPurchased && onMarkPurchased != null) {
+            ClosetlyButton(
+                text = "Tandai sudah dibeli",
+                onClick = onMarkPurchased,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
