@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performScrollTo
@@ -44,7 +45,18 @@ class AppShellNavigationTest {
         composeRule.onNodeWithText("Wishlist Saya").assertIsDisplayed()
         composeRule.onNodeWithText("Koleksi").performClick()
         composeRule.onNodeWithText("Koleksi Lemari Saya").assertIsDisplayed()
-        composeRule.onNodeWithText("Lemari").assertIsSelected()
+        composeRule.onNodeWithText("Closet").assertIsSelected()
+    }
+
+    @Test
+    fun wishlistForm_hidesBottomNavigation_andRestoresItOnCancel() {
+        scrollTo("Fashion Wishlist")
+        composeRule.onNodeWithText("Fashion Wishlist").performClick()
+        composeRule.onNodeWithText("Tambah barang").performClick()
+        composeRule.onNodeWithText("Closet").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Kembali ke Wishlist").performClick()
+        composeRule.onNodeWithText("Wishlist Saya").assertIsDisplayed()
+        composeRule.onNodeWithText("Closet").assertIsSelected()
     }
 
     @Test
@@ -61,9 +73,9 @@ class AppShellNavigationTest {
     fun primaryBottomNavigation_updatesSelection_withoutDuplicatingDestinations() {
         composeRule.onNodeWithText("Beranda").assertIsSelected()
 
-        composeRule.onNodeWithText("Lemari").performClick()
+        composeRule.onNodeWithText("Closet").performClick()
         composeRule.onNodeWithText("Koleksi Lemari Saya").assertIsDisplayed()
-        composeRule.onNodeWithText("Lemari").assertIsSelected()
+        composeRule.onNodeWithText("Closet").assertIsSelected()
 
         composeRule.onNodeWithText("Outfit").performClick()
         composeRule.onNodeWithText("Mix & Match").assertIsDisplayed()
