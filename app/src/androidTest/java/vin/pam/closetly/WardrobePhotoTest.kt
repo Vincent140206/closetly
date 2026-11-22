@@ -11,6 +11,7 @@ import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -43,6 +44,11 @@ class WardrobePhotoTest {
         assertTrue(File(saved.imagePath).exists())
         assertTrue(File(saved.originalPath).exists())
         assertEquals(480, store.load(saved.imagePath).width)
+        store.discardCameraPhoto(uri)
+        val capture = File(context.cacheDir, "wardrobe-capture/${uri.lastPathSegment}")
+        assertFalse(capture.exists())
+        assertTrue(File(saved.originalPath).exists())
+        store.discardCameraPhoto(uri)
     }
 
     @Test

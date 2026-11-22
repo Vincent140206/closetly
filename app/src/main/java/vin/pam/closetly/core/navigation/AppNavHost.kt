@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
@@ -43,7 +45,6 @@ import vin.pam.closetly.feature.inspiration.ui.MyInspirationDestination
 import vin.pam.closetly.feature.inspiration.ui.StyleDetailDestination
 import vin.pam.closetly.feature.profile.ProfileScreen
 import vin.pam.closetly.feature.profile.ProfileViewModel
-import vin.pam.closetly.feature.wishlist.ui.WishlistDemoRoot
 import vin.pam.closetly.feature.outfit.OutfitDetailViewModel
 import vin.pam.closetly.feature.outfit.OutfitFormViewModel
 import vin.pam.closetly.feature.outfit.OutfitGraph
@@ -59,9 +60,10 @@ import vin.pam.closetly.feature.wardrobe.ui.WardrobeDetailScreen
 import vin.pam.closetly.feature.wardrobe.ui.WardrobeFormDestination
 import vin.pam.closetly.feature.planner.ui.PlannerScreen
 import vin.pam.closetly.feature.planner.model.PlannerOutfit
+import vin.pam.closetly.feature.wishlist.ui.WishlistDemoRoot
+import vin.pam.closetly.feature.wearhistory.ui.WearHistoryDestination
 import vin.pam.closetly.feature.wardrobe.ui.components.WardrobeBrandHeader
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+
 private const val HomeDestinationId = "home"
 private const val WardrobeDestinationId = "wardrobe"
 private const val OutfitDestinationId = "outfit"
@@ -93,11 +95,10 @@ fun AppNavHost(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val selectedPrimaryDestination = primaryDestinationId(currentRoute)
-    var isWishlistFormVisible by remember {
-        mutableStateOf(false)
-    }
     val authenticatedUser =
         (authUiState.sessionState as? AuthSessionState.Authenticated)?.user
+    var openWishlist by remember(authenticatedUser?.id) { mutableStateOf(false) }
+    var isWishlistFormVisible by remember(authenticatedUser?.id) { mutableStateOf(false) }
     val applicationContext = LocalContext.current.applicationContext
     val wardrobeGraph = remember(authenticatedUser?.id, applicationContext, container.supabaseClient) {
         WardrobeGraph.forAccount(applicationContext, authenticatedUser?.id, container.supabaseClient)
@@ -149,13 +150,8 @@ fun AppNavHost(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (
-                selectedPrimaryDestination != null &&
-                (
-                        selectedPrimaryDestination != WardrobeDestinationId ||
-                                !isWishlistFormVisible
-                        )
-            ) {
+            if (selectedPrimaryDestination != null &&
+                (selectedPrimaryDestination != WardrobeDestinationId || !isWishlistFormVisible)) {
                 ClosetlyBottomBar(
                     items = PrimaryBottomBarItems,
                     selectedItemId = selectedPrimaryDestination,
@@ -208,9 +204,7 @@ fun AppNavHost(
                             AppModule.Inspiration -> navController.navigateToPrimaryDestination(
                                 CommunityDestinationId,
                             )
-                            AppModule.Wishlist -> navController.navigateToPrimaryDestination(
-                                WardrobeDestinationId,
-                            )
+                            AppModule.Wishlist -> navController.navigate(WishlistRoute)
                             AppModule.WearHistory -> navController.navigate(WearHistoryRoute)
                         }
                     },
@@ -256,47 +250,39 @@ fun AppNavHost(
                     onBack = navController::popBackStack,
                 )
             }
-
             composable<WardrobeRoute> {
-                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-                    wardrobeViewModel.refresh()
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { wardrobeViewModel.refresh() }
+                key(authenticatedUser?.id) {
+                    WishlistDemoRoot(
+                        headerContent = { WardrobeBrandHeader({ navController.navigate(ProfileRoute) }) },
+                        onFormVisibilityChange = { isWishlistFormVisible = it },
+                        openWishlist = openWishlist,
+                        onWishlistOpened = { openWishlist = false },
+                        collectionContent = {
+                            WardrobeScreen(
+                                state = wardrobeState,
+                                onSearch = wardrobeViewModel::search,
+                                onCategory = wardrobeViewModel::selectCategory,
+                                onFilter = wardrobeViewModel::applyFilter,
+                                onCreate = { navController.navigate(WardrobeFormRoute()) },
+                                onOpenItem = { navController.navigate(WardrobeDetailRoute(it)) },
+                                onEditItem = { navController.navigate(WardrobeFormRoute(it)) },
+                                onFavorite = wardrobeViewModel::toggleFavorite,
+                                onWishlist = { navController.navigate(WishlistRoute) },
+                                onOutfits = { navController.navigateToPrimaryDestination(OutfitDestinationId) },
+                                onProfile = { navController.navigate(ProfileRoute) },
+                                onRetry = { wardrobeViewModel.refresh(force = true) },
+                                onLoadPhoto = wardrobeViewModel::loadPhoto,
+                                showClosetTabs = false,
+                                showBrandHeader = false,
+                            )
+                        },
+                    )
                 }
-
-                WishlistDemoRoot(
-                    modifier = Modifier.consumeWindowInsets(outerPadding),
-                    headerContent = {
-                        WardrobeBrandHeader(
-                            { navController.navigate(ProfileRoute) },
-                        )
-                    },
-                    onFormVisibilityChange = { visible ->
-                        isWishlistFormVisible = visible
-                    },
-                    collectionContent = {
-
-                        WardrobeScreen(
-                            state = wardrobeState,
-                            onSearch = wardrobeViewModel::search,
-                            onCategory = wardrobeViewModel::selectCategory,
-                            onFilter = wardrobeViewModel::applyFilter,
-                            onCreate = { navController.navigate(WardrobeFormRoute()) },
-                            onOpenItem = { navController.navigate(WardrobeDetailRoute(it)) },
-                            onEditItem = { navController.navigate(WardrobeFormRoute(it)) },
-                            onFavorite = wardrobeViewModel::toggleFavorite,
-                            onWishlist = {},
-                            onOutfits = {
-                                navController.navigateToPrimaryDestination(OutfitDestinationId)
-                            },
-                            onProfile = { navController.navigate(ProfileRoute) },
-                            onRetry = { wardrobeViewModel.refresh(force = true) },
-                            showClosetTabs = false,
-                            showBrandHeader = false,
-                        )
-                    },
-                )
             }
             composable<WardrobeDetailRoute> { entry ->
                 val id = entry.toRoute<WardrobeDetailRoute>().itemId
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { wardrobeViewModel.refresh() }
                 LaunchedEffect(wardrobeState.archivedItemId) {
                     if (wardrobeState.archivedItemId == id) {
                         wardrobeViewModel.consumeArchive()
@@ -312,6 +298,9 @@ fun AppNavHost(
                     onFavorite = wardrobeViewModel::toggleFavorite,
                     onArchive = { wardrobeViewModel.archive(id) },
                     onRestore = { wardrobeViewModel.restore(id) },
+                    onLoadPhoto = wardrobeViewModel::loadPhoto,
+                    isMutating = id in wardrobeState.pendingItemIds,
+                    onRetry = { wardrobeViewModel.refresh(force = true) },
                 )
             }
             composable<WardrobeFormRoute> { entry ->
@@ -324,7 +313,6 @@ fun AppNavHost(
                 )
                 WardrobeFormDestination(formViewModel, onBack = { navController.popBackStack() })
             }
-
             composable<OutfitRoute> {
                 val outfitViewModel: OutfitListViewModel = viewModel(
                     factory = OutfitListViewModel.factory(OutfitGraph.repository),
@@ -450,15 +438,19 @@ fun AppNavHost(
             }
 
             composable<WishlistRoute> {
-                WishlistDemoRoot(
-                    modifier = Modifier.consumeWindowInsets(outerPadding),
-                    onFormVisibilityChange = { visible ->
-                        isWishlistFormVisible = visible
-                    },
-                )
+                LaunchedEffect(Unit) {
+                    openWishlist = true
+                    navController.navigateToPrimaryDestination(WardrobeDestinationId)
+                }
             }
             composable<WearHistoryRoute> {
-                ModulePlaceholderScreen(AppModule.WearHistory, navController::popBackStack)
+                key(authenticatedUser?.id) {
+                    WearHistoryDestination(
+                        supabaseClient = container.supabaseClient,
+                        userId = authenticatedUser?.id,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
         }
     }
@@ -470,7 +462,6 @@ private fun primaryDestinationId(route: String?): String? = when (route) {
     OutfitRoute.serializer().descriptor.serialName -> OutfitDestinationId
     PlannerRoute.serializer().descriptor.serialName -> PlannerDestinationId
     InspirationRoute.serializer().descriptor.serialName -> CommunityDestinationId
-    WishlistRoute.serializer().descriptor.serialName -> WardrobeDestinationId
     else -> null
 }
 

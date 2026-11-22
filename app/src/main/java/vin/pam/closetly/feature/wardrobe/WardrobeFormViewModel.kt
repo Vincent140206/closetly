@@ -14,6 +14,8 @@ import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -21,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeRepository
+import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeRemoteException
 import vin.pam.closetly.feature.wardrobe.model.ClothingDraft
 import vin.pam.closetly.feature.wardrobe.model.PhotoAdjustments
 import vin.pam.closetly.feature.wardrobe.model.toDraft
@@ -62,7 +65,7 @@ class WardrobeFormViewModel(
         loadJob = viewModelScope.launch {
             try {
                 val item = repository.getItem(id)
-                state.update { it.copy(draft = restored ?: item.toDraft()) }
+                state.update { it.copy(draft = if (it.hasChanges) it.draft else item.toDraft()) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
@@ -74,16 +77,17 @@ class WardrobeFormViewModel(
     }
 
     fun edit(draft: ClothingDraft) {
-        if (state.value.isSaving || state.value.isLoading || state.value.loadFailed) return
+        if (state.value.saved || state.value.isSaving || state.value.isLoading || state.value.loadFailed) return
         savedState["draft"] = Json.encodeToString(draft)
         state.update { it.copy(draft = draft, hasChanges = true, errorMessage = null) }
     }
 
     fun createCameraUri(): Uri = photoStore.createCameraUri()
+    fun discardCameraPhoto(uri: Uri) { viewModelScope.launch { photoStore.discardCameraPhoto(uri) } }
     fun reportPhotoError(message: String) = state.update { it.copy(errorMessage = message) }
 
     fun importPhoto(uri: Uri) {
-        if (state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting) return
+        if (state.value.saved || state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting || state.value.photoEditor != null) return
         viewModelScope.launch {
             state.update { it.copy(isImporting = true, errorMessage = null) }
             try {
@@ -97,27 +101,38 @@ class WardrobeFormViewModel(
             } catch (error: Exception) {
                 reportPhotoError(photoErrorMessage(error, "Foto tidak dapat dibuka. Pilih ulang dari galeri atau kamera."))
             } finally {
+                withContext(NonCancellable) { photoStore.discardCameraPhoto(uri) }
                 state.update { it.copy(isImporting = false) }
             }
         }
     }
 
     fun openPhotoEditor() {
-        if (state.value.isSaving || state.value.isImporting) return
+        if (state.value.saved || state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting || state.value.photoEditor != null) return
         val draft = state.value.draft
-        val original = draft.originalImagePath ?: draft.imagePath ?: return
+        if (draft.originalImagePath == null && draft.imagePath == null) return
         viewModelScope.launch {
             state.update { it.copy(isImporting = true, errorMessage = null) }
             try {
+                val source = if (itemId != null && !draft.photoChanged) repository.loadPhotoForEditing(itemId).toDraft() else draft
+                val original = source.originalImagePath ?: source.imagePath
+                    ?: throw IllegalArgumentException("Foto tidak tersedia. Pilih ulang dari galeri atau kamera.")
                 val path = if (original.startsWith("android.resource://")) photoStore.importPhoto(original.toUri()) else original
                 val bitmap = photoStore.load(path)
-                val preview = draft.imagePath?.let { photoStore.load(it) } ?: bitmap
-                val adjustments = draft.photoAdjustments
+                val preview = try {
+                    source.imagePath?.let { photoStore.load(it) }
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (_: Exception) {
+                    null
+                }
+                val adjustments = if (preview != null) source.photoAdjustments else PhotoAdjustments()
                 mask = null
                 state.update { it.copy(photoEditor = PhotoEditorState(
-                    originalPath = path, original = bitmap, preview = preview,
+                    originalPath = path, original = bitmap, preview = preview ?: bitmap,
                     balance = WhiteBalance(adjustments.redGain, adjustments.greenGain, adjustments.blueGain),
                     backgroundRemoved = adjustments.backgroundRemoved,
+                    errorMessage = if (preview == null) "Pratinjau sebelumnya tidak tersedia. Foto asli ditampilkan; atur ulang warna dan background bila diperlukan." else null,
                 )) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
@@ -214,7 +229,7 @@ class WardrobeFormViewModel(
     ))
 
     fun save() {
-        if (state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting || state.value.photoEditor != null) return
+        if (state.value.saved || state.value.isSaving || state.value.isLoading || state.value.loadFailed || state.value.isImporting || state.value.photoEditor != null) return
         state.update { it.copy(attemptedSave = true) }
         val draft = try {
             state.value.draft.validated()
@@ -239,7 +254,7 @@ class WardrobeFormViewModel(
     }
 
     private fun photoErrorMessage(error: Exception, fallback: String): String =
-        if (error is IllegalArgumentException) error.message ?: fallback else fallback
+        if (error is IllegalArgumentException || error is WardrobeRemoteException) error.message ?: fallback else fallback
 
     private fun neutralSample(bitmap: Bitmap, x: Int, y: Int): IntArray {
         var red = 0

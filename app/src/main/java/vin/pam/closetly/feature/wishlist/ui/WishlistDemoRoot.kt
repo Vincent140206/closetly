@@ -32,7 +32,13 @@ import vin.pam.closetly.ui.theme.ClosetlySpacing
 import androidx.compose.ui.platform.LocalContext
 import vin.pam.closetly.R
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.listSaver
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
+@Serializable
 private data class WishlistDemoEntry(
     val id: String,
     val formData: WishlistFormData,
@@ -69,15 +75,27 @@ fun WishlistDemoRoot(
     collectionContent: (@Composable () -> Unit)? = null,
     headerContent: (@Composable () -> Unit)? = null,
     onFormVisibilityChange: (Boolean) -> Unit = {},
+    openWishlist: Boolean = false,
+    onWishlistOpened: () -> Unit = {},
 ) {
     var showAddForm by rememberSaveable { mutableStateOf(false) }
     var showEditForm by rememberSaveable { mutableStateOf(false) }
     var selectedItemId by rememberSaveable { mutableStateOf<String?>(null) }
     var wishlistTab by rememberSaveable { mutableStateOf(false) }
 
+    LaunchedEffect(openWishlist) {
+        if (openWishlist) {
+            wishlistTab = true
+            onWishlistOpened()
+        }
+    }
+
     val tabStateHolder = rememberSaveableStateHolder()
     val appPackageName = LocalContext.current.packageName
-    var entries by remember {
+    var entries by rememberSaveable(stateSaver = listSaver<List<WishlistDemoEntry>, String>(
+        save = { values -> values.map { Json.encodeToString(it) } },
+        restore = { values -> values.map { Json.decodeFromString<WishlistDemoEntry>(it) } },
+    )) {
         mutableStateOf(
             listOf(
                 WishlistDemoEntry(

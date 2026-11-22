@@ -17,6 +17,7 @@ interface WardrobeRemoteDataSource {
 
 interface WardrobeImageFiles {
     fun cachedPath(objectPath: String): String
+    fun existingPath(objectPath: String): String?
     suspend fun cache(objectPath: String, download: suspend () -> ByteArray): String
     suspend fun prepareUpload(localPath: String): ByteArray
 }

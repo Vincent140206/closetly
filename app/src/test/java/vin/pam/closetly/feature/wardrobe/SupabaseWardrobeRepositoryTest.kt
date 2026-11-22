@@ -4,6 +4,7 @@ import java.io.IOException
 import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -20,6 +21,7 @@ import vin.pam.closetly.feature.wardrobe.data.dto.ClothingItemRecord
 import vin.pam.closetly.feature.wardrobe.data.repository.SupabaseWardrobeRepository
 import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeImageFiles
 import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeRemoteDataSource
+import vin.pam.closetly.feature.wardrobe.data.repository.WardrobeRemoteException
 import vin.pam.closetly.feature.wardrobe.model.ClothingDraft
 import vin.pam.closetly.feature.wardrobe.model.PhotoAdjustments
 import vin.pam.closetly.feature.wardrobe.model.WardrobeCategory
@@ -161,6 +163,38 @@ class SupabaseWardrobeRepositoryTest {
     }
 
     @Test
+    fun malformedPagination_failsWithoutReplacingPreviousCollection() = runBlocking {
+        val remote = FakeRemote()
+        val row = record()
+        remote.rows[row.id] = row
+        val repository = repository(remote)
+        repository.refresh()
+        remote.pageOverride = List(200) { row }
+        try {
+            repository.refresh(force = true)
+            throw AssertionError("Expected duplicate cursor rejection")
+        } catch (_: IllegalStateException) { }
+        assertEquals(2, remote.pageCount)
+        assertEquals(listOf(row.id), repository.items.value.map { it.id })
+    }
+
+    @Test
+    fun accountChangeDuringPhotoDownload_clearsState_andRejectsLateResult() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        remote.beforeDownload = { remote.sessionUserId = other }
+        val repository = repository(remote)
+        repository.refresh()
+        try {
+            repository.loadPhoto(row.id)
+            throw AssertionError("Expected session guard")
+        } catch (_: IllegalStateException) { }
+        assertTrue(repository.items.value.isEmpty())
+    }
+
+    @Test
     fun changedSession_clearsCachedState_andRejectsNewWrites() = runBlocking {
         val remote = FakeRemote()
         val item = record()
@@ -174,6 +208,22 @@ class SupabaseWardrobeRepositoryTest {
         } catch (_: IllegalStateException) { }
         assertTrue(repository.items.value.isEmpty())
         assertEquals(0, remote.insertCount)
+    }
+
+    @Test
+    fun invalidPhotoOwnership_isRejectedBeforePublishingOrDownloading() = runBlocking {
+        for (path in listOf("$other/wardrobe/photo.png", "$owner/../photo.png")) {
+            val remote = FakeRemote()
+            val row = record().copy(imagePath = path)
+            remote.rows[row.id] = row
+            val repository = repository(remote)
+            try {
+                repository.refresh()
+                throw AssertionError("Expected photo ownership guard")
+            } catch (_: IllegalStateException) { }
+            assertTrue(repository.items.value.isEmpty())
+            assertEquals(0, remote.downloadCount)
+        }
     }
 
     @Test
@@ -196,8 +246,140 @@ class SupabaseWardrobeRepositoryTest {
         remote.rows[item.id] = item
         val repository = repository(remote)
         repository.refresh()
+        repository.loadPhoto(item.id)
         assertEquals(item.id, repository.items.value.single().id)
         assertEquals("cache/${item.imagePath}", repository.items.value.single().imagePath)
+    }
+
+    @Test
+    fun refresh_readsMetadataOnly_andVisiblePhotoIsDownloadedOnce() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png", originalImagePath = "$owner/wardrobe/original.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        val repository = repository(remote)
+        repository.refresh()
+        assertEquals(0, remote.downloadCount)
+        assertEquals(null, repository.items.value.single().imagePath)
+        repository.loadPhoto(row.id)
+        repository.loadPhoto(row.id)
+        assertEquals(1, remote.downloadCount)
+        assertEquals("cache/${row.imagePath}", repository.items.value.single().imagePath)
+        assertEquals(null, repository.items.value.single().originalImagePath)
+    }
+
+    @Test
+    fun metadataForm_defersOriginalUntilPhotoEditor_andReusesDownloads() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png", originalImagePath = "$owner/wardrobe/original.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        remote.objects[requireNotNull(row.originalImagePath)] = byteArrayOf(2)
+        val repository = repository(remote)
+        repository.getItem(row.id)
+        assertEquals(1, remote.downloadCount)
+        repository.loadPhotoForEditing(row.id)
+        repository.loadPhotoForEditing(row.id)
+        assertEquals(2, remote.downloadCount)
+    }
+
+    @Test
+    fun originalDownloadFailure_keepsClothing_andReportsRetryableEditorError() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png", originalImagePath = "$owner/wardrobe/original.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        val repository = repository(remote)
+        repository.getItem(row.id)
+        remote.beforeDownload = { throw WardrobeRemoteException("Periksa koneksi lalu coba lagi.", IOException("private path")) }
+        try {
+            repository.loadPhotoForEditing(row.id)
+            throw AssertionError("Expected an original download error")
+        } catch (error: IllegalStateException) {
+            assertEquals("Periksa koneksi lalu coba lagi.", error.message)
+        }
+        assertEquals(row.id, repository.items.value.single().id)
+    }
+
+    @Test
+    fun photoCompletingAfterRefresh_cannotRestoreDeletedRecord() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        val started = CompletableDeferred<Unit>()
+        val resume = CompletableDeferred<Unit>()
+        remote.beforeDownload = { started.complete(Unit); resume.await() }
+        val repository = repository(remote)
+        repository.refresh()
+        val photo = async { repository.loadPhoto(row.id) }
+        started.await()
+        remote.rows.clear()
+        repository.refresh(force = true)
+        resume.complete(Unit)
+        photo.await()
+        assertTrue(repository.items.value.isEmpty())
+    }
+
+    @Test
+    fun photoChangedDuringDownload_loadsLatestPathWithoutAnotherUiRequest() = runBlocking {
+        val remote = FakeRemote()
+        val oldPath = "$owner/wardrobe/old.png"
+        val newPath = "$owner/wardrobe/new.png"
+        val row = record().copy(imagePath = oldPath)
+        remote.rows[row.id] = row
+        remote.objects[oldPath] = byteArrayOf(1)
+        remote.objects[newPath] = byteArrayOf(2)
+        val started = CompletableDeferred<Unit>()
+        val resume = CompletableDeferred<Unit>()
+        remote.beforeDownload = {
+            if (remote.downloadCount == 1) { started.complete(Unit); resume.await() }
+        }
+        val repository = repository(remote)
+        repository.refresh()
+        val photo = async { repository.loadPhoto(row.id) }
+        started.await()
+        remote.rows[row.id] = row.copy(name = "Foto terbaru", imagePath = newPath)
+        repository.refresh(force = true)
+        resume.complete(Unit)
+        photo.await()
+        assertEquals(2, remote.downloadCount)
+        assertEquals("cache/$newPath", repository.items.value.single().imagePath)
+        assertEquals("Foto terbaru", repository.items.value.single().name)
+    }
+
+    @Test
+    fun slowPhoto_doesNotBlockFavorite_orOverwriteItsNewMetadata() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/processed.png")
+        remote.rows[row.id] = row
+        remote.objects[requireNotNull(row.imagePath)] = byteArrayOf(1)
+        val started = CompletableDeferred<Unit>()
+        val resume = CompletableDeferred<Unit>()
+        remote.beforeDownload = { started.complete(Unit); resume.await() }
+        val repository = repository(remote)
+        repository.refresh()
+        val photo = async { repository.loadPhoto(row.id) }
+        started.await()
+        repository.setFavorite(row.id, true)
+        assertTrue(repository.items.value.single().isFavorite)
+        resume.complete(Unit)
+        photo.await()
+        assertTrue(repository.items.value.single().isFavorite)
+        assertEquals("cache/${row.imagePath}", repository.items.value.single().imagePath)
+        assertEquals(1, remote.downloadCount)
+    }
+
+    @Test
+    fun archiveAndRestore_doNotDownloadMissingPhotos() = runBlocking {
+        val remote = FakeRemote()
+        val row = record().copy(imagePath = "$owner/wardrobe/unavailable.png")
+        remote.rows[row.id] = row
+        val repository = repository(remote)
+        repository.archiveItem(row.id)
+        repository.restoreItem(row.id)
+        assertEquals(0, remote.downloadCount)
+        assertFalse(repository.items.value.single().isArchived)
     }
 
     @Test
@@ -268,6 +450,7 @@ class SupabaseWardrobeRepositoryTest {
     private class FakeImages : WardrobeImageFiles {
         private val cached = java.util.concurrent.ConcurrentHashMap<String, ByteArray>()
         override fun cachedPath(objectPath: String) = "cache/$objectPath"
+        override fun existingPath(objectPath: String) = cachedPath(objectPath).takeIf { cached.containsKey(objectPath) }
         override suspend fun cache(objectPath: String, download: suspend () -> ByteArray): String {
             if (!cached.containsKey(objectPath)) cached[objectPath] = download()
             return cachedPath(objectPath)
@@ -282,7 +465,10 @@ class SupabaseWardrobeRepositoryTest {
         var insertCount = 0
         var uploadCount = 0
         var pageCount = 0
+        var downloadCount = 0
+        var beforeDownload: suspend () -> Unit = {}
         var pageError: Exception? = null
+        var pageOverride: List<ClothingItemRecord>? = null
         var loseInsertResponse = false
         var failSecondUpload = false
         var afterUpload: (() -> Unit)? = null
@@ -295,6 +481,7 @@ class SupabaseWardrobeRepositoryTest {
             requireOwner(userId)
             pageCount++
             pageError?.let { throw it }
+            pageOverride?.let { return it }
             return rows.values.filter { it.userId == userId && (afterId == null || it.id > afterId) }.sortedBy { it.id }.take(limit)
         }
         override suspend fun find(userId: String, id: String): ClothingItemRecord? {
@@ -338,6 +525,8 @@ class SupabaseWardrobeRepositoryTest {
         }
         override suspend fun download(userId: String, objectPath: String): ByteArray {
             requireOwner(userId)
+            downloadCount++
+            beforeDownload()
             return objects[objectPath] ?: throw IOException("Missing photo")
         }
     }

@@ -37,6 +37,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
+import kotlinx.serialization.Serializable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -73,18 +74,21 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 
+@Serializable
 enum class WishlistCategory(val label: String) {
     Clothing("Pakaian"),
     Shoes("Sepatu"),
     Accessories("Aksesori"),
 }
 
+@Serializable
 enum class WishlistPriority(val label: String) {
     High("Tinggi"),
     Medium("Sedang"),
     Low("Rendah"),
 }
 
+@Serializable
 data class WishlistFormData(
     val name: String,
     val category: WishlistCategory,

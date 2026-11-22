@@ -63,6 +63,7 @@ fun WardrobeFormDestination(viewModel: WardrobeFormViewModel, onBack: () -> Unit
     WardrobeFormScreen(
         state = state, onEdit = viewModel::edit, onSave = viewModel::save, onBack = onBack,
         onCreateCameraUri = viewModel::createCameraUri, onPhoto = viewModel::importPhoto,
+        onDiscardCameraPhoto = viewModel::discardCameraPhoto,
         onPhotoError = viewModel::reportPhotoError, onEditPhoto = viewModel::openPhotoEditor,
         onRemovePhoto = viewModel::removePhoto,
         onRetry = viewModel::loadItem,
@@ -83,6 +84,7 @@ private fun WardrobeFormScreen(
     onSave: () -> Unit,
     onBack: () -> Unit,
     onCreateCameraUri: () -> Uri,
+    onDiscardCameraPhoto: (Uri) -> Unit,
     onPhoto: (Uri) -> Unit,
     onPhotoError: (String) -> Unit,
     onEditPhoto: () -> Unit,
@@ -104,7 +106,7 @@ private fun WardrobeFormScreen(
         uri?.let(onPhoto)
     }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) pendingCameraUri?.let { onPhoto(it.toUri()) }
+        pendingCameraUri?.toUri()?.let { if (success) onPhoto(it) else onDiscardCameraPhoto(it) }
         pendingCameraUri = null
     }
 
@@ -184,9 +186,11 @@ private fun WardrobeFormScreen(
                                 pendingCameraUri = uri.toString()
                                 camera.launch(uri)
                             } catch (_: ActivityNotFoundException) {
+                                pendingCameraUri?.toUri()?.let(onDiscardCameraPhoto)
                                 pendingCameraUri = null
                                 onPhotoError("Aplikasi kamera tidak tersedia di perangkat ini.")
                             } catch (_: Exception) {
+                                pendingCameraUri?.toUri()?.let(onDiscardCameraPhoto)
                                 pendingCameraUri = null
                                 onPhotoError("Kamera belum dapat dibuka. Periksa izin dan ruang penyimpanan lalu coba lagi.")
                             }

@@ -24,6 +24,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import vin.pam.closetly.ui.theme.ClosetlyTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -67,144 +69,146 @@ internal fun WishlistFilterSheet(
         skipPartiallyExpanded = true,
     )
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.85f)
-                .padding(ClosetlySpacing.Lg),
-            verticalArrangement = Arrangement.spacedBy(
-                ClosetlySpacing.Md,
-            ),
+    ClosetlyTheme(darkTheme = false) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            containerColor = Color.White,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Filter Wishlist",
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                )
-
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = "Tutup filter",
-                    )
-                }
-            }
-
             Column(
                 modifier = Modifier
-                    .weight(1f)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
+                    .fillMaxHeight(0.85f)
+                    .padding(ClosetlySpacing.Lg),
                 verticalArrangement = Arrangement.spacedBy(
-                    ClosetlySpacing.Sm,
+                    ClosetlySpacing.Md,
                 ),
             ) {
-                Text(
-                    text = "Kategori",
-                    style = MaterialTheme.typography.titleSmall,
-                )
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(
-                        ClosetlySpacing.Sm,
-                    ),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    FilterChip(
-                        selected = category == null,
-                        onClick = { category = null },
-                        label = { Text("Semua kategori") },
+                    Text(
+                        text = "Filter Wishlist",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
                     )
 
-                    WishlistCategory.entries.forEach { option ->
-                        FilterChip(
-                            selected = category == option,
-                            onClick = { category = option },
-                            label = { Text(option.label) },
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = "Tutup filter",
                         )
                     }
                 }
 
-                Text(
-                    text = "Prioritas pembelian",
-                    style = MaterialTheme.typography.titleSmall,
-                )
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(
                         ClosetlySpacing.Sm,
                     ),
                 ) {
-                    FilterChip(
-                        selected = priority == null,
-                        onClick = { priority = null },
-                        label = { Text("Semua prioritas") },
+                    Text(
+                        text = "Kategori",
+                        style = MaterialTheme.typography.titleSmall,
                     )
 
-                    WishlistPriority.entries.forEach { option ->
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(
+                            ClosetlySpacing.Sm,
+                        ),
+                    ) {
                         FilterChip(
-                            selected = priority == option,
-                            onClick = { priority = option },
-                            label = { Text(option.label) },
+                            selected = category == null,
+                            onClick = { category = null },
+                            label = { Text("Semua kategori") },
                         )
+
+                        WishlistCategory.entries.forEach { option ->
+                            FilterChip(
+                                selected = category == option,
+                                onClick = { category = option },
+                                label = { Text(option.label) },
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Prioritas pembelian",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(
+                            ClosetlySpacing.Sm,
+                        ),
+                    ) {
+                        FilterChip(
+                            selected = priority == null,
+                            onClick = { priority = null },
+                            label = { Text("Semua prioritas") },
+                        )
+
+                        WishlistPriority.entries.forEach { option ->
+                            FilterChip(
+                                selected = priority == option,
+                                onClick = { priority = option },
+                                label = { Text(option.label) },
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Status pembelian",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(
+                            ClosetlySpacing.Sm,
+                        ),
+                    ) {
+                        PurchaseFilter.entries.forEach { option ->
+                            FilterChip(
+                                selected = status == option,
+                                onClick = { status = option },
+                                label = { Text(option.label) },
+                            )
+                        }
                     }
                 }
 
-                Text(
-                    text = "Status pembelian",
-                    style = MaterialTheme.typography.titleSmall,
-                )
-
-                FlowRow(
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(
                         ClosetlySpacing.Sm,
                     ),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PurchaseFilter.entries.forEach { option ->
-                        FilterChip(
-                            selected = status == option,
-                            onClick = { status = option },
-                            label = { Text(option.label) },
-                        )
-                    }
+                    ClosetlyButton(
+                        text = "Reset",
+                        onClick = {
+                            category = null
+                            priority = null
+                            status = PurchaseFilter.All
+                        },
+                        style = ClosetlyButtonStyle.Secondary,
+                    )
+
+                    ClosetlyButton(
+                        text = "Terapkan filter",
+                        onClick = {
+                            onApply(category, priority, status)
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(
-                    ClosetlySpacing.Sm,
-                ),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                ClosetlyButton(
-                    text = "Reset",
-                    onClick = {
-                        category = null
-                        priority = null
-                        status = PurchaseFilter.All
-                    },
-                    style = ClosetlyButtonStyle.Secondary,
-                )
-
-                ClosetlyButton(
-                    text = "Terapkan filter",
-                    onClick = {
-                        onApply(category, priority, status)
-                    },
-                    modifier = Modifier.weight(1f),
-                )
             }
         }
     }

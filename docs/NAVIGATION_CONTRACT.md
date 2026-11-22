@@ -13,7 +13,9 @@ Navigation tetap terpusat di `core/navigation/AppNavHost.kt`. Route adalah type-
 - `LoginRoute`, `RegisterRoute`, dan `ProfileRoute` menjalankan flow Auth/Profile yang sudah ada.
 - `WardrobeRoute`, `OutfitRoute`, `PlannerRoute`, `InspirationRoute`, `WishlistRoute`, dan `WearHistoryRoute` menjaga identitas enam modul.
 - `OutfitRoute` membuka daftar outfit dengan route detail dan form. `InspirationRoute` membuka papan inspirasi dengan route detail post dan koleksi.
-- Wardrobe, Planner, Wishlist, dan Wear History masih membuka `ModulePlaceholderScreen`.
+- Wardrobe membuka koleksi dan form Digital Wardrobe. Planner membuka alur lokal per akun dan pemilih outfit dari Mix & Match.
+- Wishlist membuka UI demo lokal melalui `WishlistRoute`; tab Koleksi kembali ke koleksi Digital Wardrobe yang sudah ada.
+- Wear History membuka kalender/read Supabase atau prompt login. Tambah/edit/hapus masih berupa alur UI yang belum menyimpan perubahan.
 
 `InspirationRoute` sekarang mewakili **Community**. Nama route, package `feature/inspiration`, dan branch `feature/inspiration-board` tidak diubah untuk kompatibilitas.
 
