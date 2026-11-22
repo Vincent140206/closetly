@@ -15,6 +15,7 @@ data class WardrobeUiState(
     val filter: WardrobeFilter = WardrobeFilter(),
     val errorMessage: String? = null,
     val archivedItemId: String? = null,
+    val pendingItemIds: Set<String> = emptySet(),
 ) {
     val visibleItems: List<ClothingItem> get() = items.matching(query, filter)
     val activeCount: Int get() = items.count { !it.isArchived }

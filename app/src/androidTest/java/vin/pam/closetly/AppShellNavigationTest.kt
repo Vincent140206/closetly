@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performScrollTo
@@ -38,29 +39,43 @@ class AppShellNavigationTest {
     }
 
     @Test
-    fun unfinishedModules_openSharedPlaceholder_andNavigateBackHome() {
-        val homeActions = mapOf(
-            AppModule.Wishlist to "Fashion Wishlist",
-            AppModule.WearHistory to "Wear History",
-        )
-        homeActions.forEach { (module, action) ->
-            scrollTo(action)
-            composeRule.onNodeWithText(action).assertIsDisplayed().performClick()
-            composeRule.onNodeWithText("Not implemented yet").assertIsDisplayed()
-            composeRule.onNodeWithText("${module.title} is assigned to ${module.owner}.").assertIsDisplayed()
-            composeRule.onNodeWithText("Back").performClick()
-            scrollTo(action)
-            composeRule.onNodeWithText(action).assertIsDisplayed()
-        }
+    fun wishlistFromHome_opensFeature_andCanReturnToCollection() {
+        scrollTo("Fashion Wishlist")
+        composeRule.onNodeWithText("Fashion Wishlist").performClick()
+        composeRule.onNodeWithText("Wishlist Saya").assertIsDisplayed()
+        composeRule.onNodeWithText("Koleksi").performClick()
+        composeRule.onNodeWithText("Koleksi Lemari Saya").assertIsDisplayed()
+        composeRule.onNodeWithText("Closet").assertIsSelected()
+    }
+
+    @Test
+    fun wishlistForm_hidesBottomNavigation_andRestoresItOnCancel() {
+        scrollTo("Fashion Wishlist")
+        composeRule.onNodeWithText("Fashion Wishlist").performClick()
+        composeRule.onNodeWithText("Tambah barang").performClick()
+        composeRule.onNodeWithText("Closet").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Kembali ke Wishlist").performClick()
+        composeRule.onNodeWithText("Wishlist Saya").assertIsDisplayed()
+        composeRule.onNodeWithText("Closet").assertIsSelected()
+    }
+
+    @Test
+    fun wearHistoryWithoutSession_showsLoginPrompt_andReturnsHome() {
+        scrollTo("Wear History")
+        composeRule.onNodeWithText("Wear History").performClick()
+        composeRule.onNodeWithText("Silakan login terlebih dahulu.").assertIsDisplayed()
+        composeRule.onNodeWithText("Kembali").performClick()
+        scrollTo("Wear History")
+        composeRule.onNodeWithText("Wear History").assertIsDisplayed()
     }
 
     @Test
     fun primaryBottomNavigation_updatesSelection_withoutDuplicatingDestinations() {
         composeRule.onNodeWithText("Beranda").assertIsSelected()
 
-        composeRule.onNodeWithText("Lemari").performClick()
+        composeRule.onNodeWithText("Closet").performClick()
         composeRule.onNodeWithText("Koleksi Lemari Saya").assertIsDisplayed()
-        composeRule.onNodeWithText("Lemari").assertIsSelected()
+        composeRule.onNodeWithText("Closet").assertIsSelected()
 
         composeRule.onNodeWithText("Outfit").performClick()
         composeRule.onNodeWithText("Mix & Match").assertIsDisplayed()

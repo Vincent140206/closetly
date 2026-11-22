@@ -25,7 +25,21 @@ class WardrobePhotoStore(private val context: Context, private val directory: Fi
     fun createCameraUri(): Uri {
         val cameraDirectory = File(context.cacheDir, "wardrobe-capture").apply { mkdirs() }
         val image = File.createTempFile("capture-", ".jpg", cameraDirectory)
-        return FileProvider.getUriForFile(context, "${context.packageName}.wardrobe.photos", image)
+        return try {
+            FileProvider.getUriForFile(context, "${context.packageName}.wardrobe.photos", image)
+        } catch (error: Exception) {
+            image.delete()
+            throw error
+        }
+    }
+
+    /** Only delete this app's capture URI; gallery content always belongs to its provider. */
+    suspend fun discardCameraPhoto(uri: Uri) = withContext(Dispatchers.IO) {
+        if (uri.scheme == "content" && uri.authority == "${context.packageName}.wardrobe.photos" &&
+            uri.pathSegments.firstOrNull() == "wardrobe_camera") {
+            runCatching { context.contentResolver.delete(uri, null, null) }
+        }
+        Unit
     }
 
     suspend fun importPhoto(uri: Uri): String = withContext(Dispatchers.IO) {
@@ -48,8 +62,14 @@ class WardrobePhotoStore(private val context: Context, private val directory: Fi
             }
             val bitmap = decodeFile(input)
             val normalized = File(staging, "original-${UUID.randomUUID()}.png")
-            writePng(bitmap, normalized)
-            bitmap.recycle()
+            try {
+                writePng(bitmap, normalized)
+            } catch (error: Exception) {
+                normalized.delete()
+                throw error
+            } finally {
+                bitmap.recycle()
+            }
             normalized.absolutePath
         } finally {
             input.delete()
@@ -59,7 +79,11 @@ class WardrobePhotoStore(private val context: Context, private val directory: Fi
     suspend fun load(path: String): Bitmap = withContext(Dispatchers.IO) {
         if (path.startsWith("android.resource://")) {
             val imported = importPhoto(path.toUri())
-            decodeFile(File(imported))
+            try {
+                decodeFile(File(imported))
+            } finally {
+                File(imported).delete()
+            }
         } else {
             decodeFile(File(path))
         }

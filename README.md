@@ -220,6 +220,7 @@ Sebelum Pull Request:
 
 ## Dokumentasi Teknis
 
+- [`docs/PAKAI_DATA_WARDROBE.md`](docs/PAKAI_DATA_WARDROBE.md): cara fitur lain mengambil data pakaian dan foto dari Digital Wardrobe.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): batas layer, package, dan keputusan arsitektur.
 - [`docs/FEATURE_DEVELOPMENT_GUIDE.md`](docs/FEATURE_DEVELOPMENT_GUIDE.md): standar implementasi fitur.
 - [`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md): scope dan aturan tiap fitur.
