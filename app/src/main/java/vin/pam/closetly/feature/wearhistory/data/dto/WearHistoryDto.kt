@@ -3,6 +3,7 @@ package vin.pam.closetly.feature.wearhistory.data.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+// READ: data dari tabel wear_history
 @Serializable
 data class WearHistoryDto(
     val id: String,
@@ -16,16 +17,17 @@ data class WearHistoryDto(
     @SerialName("is_worn") val isWorn: Boolean = false,
 )
 
-/** Hanya kolom yang diminta dari public.outfits. */
+// READ: data outfit tersimpan
 @Serializable
 data class OutfitLookupDto(
     val id: String,
     val name: String,
     val description: String? = null,
-    @SerialName("cover_image_path") val coverImagePath: String? = null,
+    @SerialName("cover_image_path")
+    val coverImagePath: String? = null,
 )
 
-/** Hanya kolom yang diminta dari public.outfit_plans. */
+// READ: informasi aktivitas dari Planner
 @Serializable
 data class OutfitPlanLookupDto(
     val id: String,

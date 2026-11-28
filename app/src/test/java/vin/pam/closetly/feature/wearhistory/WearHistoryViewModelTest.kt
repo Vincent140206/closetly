@@ -64,5 +64,32 @@ class WearHistoryViewModelTest {
         override suspend fun loadSavedOutfits(userId: String): List<SavedOutfit> {
             outfitReads++; gate.await(); return listOf(SavedOutfit("outfit", "Office"))
         }
+
+        override suspend fun insertManualHistory(
+            userId: String,
+            recordId: String,
+            outfitId: String,
+            wornDate: LocalDate,
+            notes: String
+        ) {
+            error("INSERT belum digunakan dalam test ini.")
+        }
+
+        override suspend fun updateManualHistory(
+            userId: String,
+            recordId: String,
+            outfitId: String,
+            wornDate: LocalDate,
+            notes: String
+        ) {
+            error("UPDATE belum digunakan dalam test ini.")
+        }
+
+        override suspend fun deleteManualHistory(
+            userId: String,
+            recordId: String
+        ) {
+            error("DELETE belum digunakan dalam test ini.")
+        }
     }
 }
